@@ -1,0 +1,6 @@
+/* Critical UI fixes: firing overlays must sit above ship rooms, and loading must be a compact badge. */
+.arc-overlay{z-index:6!important;pointer-events:none!important}
+.loading-v3{inset:5px 5px auto auto!important;width:48px!important;height:20px!important;padding:1px 3px!important;gap:2px!important;border-width:1px!important;background:rgba(239,229,207,.96)!important;font:800 8px/1 Arial,sans-serif!important;letter-spacing:.04em!important}
+.loading-v3 .wheel{font-size:13px!important;animation:v3spin 1.4s linear infinite!important}
+.room.weapon .room-title{padding-right:42px!important}
+.intent-chip{z-index:12!important}
