@@ -2,6 +2,7 @@ function moveLeft(){ if(state.playerMastTrack > PLAYER_MAST_MIN){ state.playerMa
 function moveRight(){ if(state.playerMastTrack < PLAYER_MAST_MAX){ state.playerMastTrack++; refresh(); } }
 moveAft.addEventListener('click',(e)=>{e.stopPropagation(); moveLeft();});
 moveFore.addEventListener('click',(e)=>{e.stopPropagation(); moveRight();});
+document.addEventListener('click', onGlobalClick);
 document.addEventListener('keydown',(e)=>{
   const k = e.key.toLowerCase();
   if(k==='arrowleft'){e.preventDefault(); moveLeft(); return;}
