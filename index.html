@@ -13,7 +13,7 @@
         <div class="eyebrow">Combat Sandbox</div>
         <h1>High Seas — Alignment & Firing Arcs</h1>
       </div>
-      <div class="help">Hover a cannon to preview its firing arc.</div>
+      <div class="help">Hover a cannon · Hold <strong>Q</strong> for enemy arcs · Hold <strong>E</strong> for friendly arcs</div>
     </header>
 
     <section class="panel combat-panel">
@@ -32,14 +32,10 @@
           <div class="ship-grid enemy-grid" id="enemyGrid"></div>
         </div>
 
-        <div class="alignment-strip">
-          <div class="track-label">RELATIVE ALIGNMENT</div>
-          <div class="track">
-            <button id="moveAft" class="move-btn">◀ Move Aft</button>
-            <div class="track-readout" id="trackReadout">Broadside</div>
-            <button id="moveFore" class="move-btn">Move Fore ▶</button>
-          </div>
+        <div class="alignment-strip" aria-label="Relative ship position">
+          <button id="moveAft" class="move-btn move-left" aria-label="Move left">◀</button>
           <div class="track-scale" id="trackScale"></div>
+          <button id="moveFore" class="move-btn move-right" aria-label="Move right">▶</button>
         </div>
 
         <div class="ship-block player-block" id="playerBlock">
