@@ -79,6 +79,7 @@ function makeRoom(r, side){
   el.dataset.id = r.id;
   el.dataset.side = side;
   el.innerHTML = roomHtml(r);
+
   if(side==='player' && r.weapon){
     el.addEventListener('mouseenter',()=>{
       if(state.exterior || isPlayerEntityCurrentlyTargeted(r.id)) return;
@@ -96,12 +97,22 @@ function makeRoom(r, side){
       refresh();
     });
   }
+
   if(side==='enemy'){
+    if(r.weapon){
+      el.addEventListener('mouseenter',()=>{
+        if(state.exterior || state.selectedWeaponId) return;
+        state.hoveredWeapon = {side, id:r.id};
+        refresh();
+      });
+      el.addEventListener('mouseleave',()=>{
+        if(state.hoveredWeapon && state.hoveredWeapon.side==='enemy' && state.hoveredWeapon.id===r.id){ state.hoveredWeapon=null; refresh(); }
+      });
+    }
     el.addEventListener('click',(e)=>{
       if(state.exterior || !state.selectedWeaponId) return;
       e.stopPropagation();
       if(isLegalTarget(r.id)) state.playerIntents[state.selectedWeaponId] = r.id;
-      // Any enemy-room click ends the temporary targeting state, legal or not.
       state.selectedWeaponId = null;
       state.hoveredWeapon = null;
       refresh();
@@ -130,7 +141,6 @@ function positionShips(){
   const w = ROOM_W();
   enemyBlock.style.left = `${TRACK_LEFT + ENEMY_LEFTMOST*w}px`;
   playerBlock.style.left = `${TRACK_LEFT + playerLeftmost()*w}px`;
-  // Keep the mast target rectangles in the prior visual location: centered over the ship.
   enemyMastBox.style.left = `${1.5*w - 24}px`;
   playerMastBox.style.left = `${1.5*w - 24}px`;
   moveAft.disabled = state.playerMastTrack <= PLAYER_MAST_MIN;
