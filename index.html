@@ -28,46 +28,16 @@
         </div>
 
         <div class="ship-block enemy-block" id="enemyBlock">
-          <div class="ship-exterior" aria-hidden="true">
-            <div class="hull-shape"></div>
-            <div class="deck-line"></div>
-            <div class="full-mast">
-              <span class="mast-pole"></span>
-              <span class="yard yard-upper"></span>
-              <span class="yard yard-main"></span>
-              <span class="rig rig-left"></span>
-              <span class="rig rig-right"></span>
-            </div>
-          </div>
-          <div class="mast-target enemy-mast-target" id="enemyMast" data-side="enemy" data-kind="mast" tabindex="0">
-            <div class="mast-target-label">MAST</div>
-            <div class="mast-pips" id="enemyMastPips"></div>
-          </div>
+          <div class="ship-exterior" aria-hidden="true"><div class="hull-shape"></div><div class="deck-line"></div><div class="full-mast"><span class="mast-pole"></span><span class="yard yard-upper"></span><span class="yard yard-main"></span><span class="rig rig-left"></span><span class="rig rig-right"></span></div></div>
+          <div class="mast-target enemy-mast-target" id="enemyMast" data-side="enemy" data-kind="mast"><div class="mast-target-label">MAST</div><div class="mast-pips" id="enemyMastPips"></div></div>
           <div class="ship-grid enemy-grid" id="enemyGrid"></div>
         </div>
 
-        <div class="alignment-strip" aria-label="Relative ship position">
-          <button id="moveAft" class="move-btn move-left" aria-label="Move left">◀</button>
-          <div class="track-scale" id="trackScale"></div>
-          <button id="moveFore" class="move-btn move-right" aria-label="Move right">▶</button>
-        </div>
+        <div class="alignment-strip" aria-label="Relative ship position"><button id="moveAft" class="move-btn move-left" aria-label="Move left">◀</button><div class="track-scale" id="trackScale"></div><button id="moveFore" class="move-btn move-right" aria-label="Move right">▶</button></div>
 
         <div class="ship-block player-block" id="playerBlock">
-          <div class="ship-exterior" aria-hidden="true">
-            <div class="hull-shape"></div>
-            <div class="deck-line"></div>
-            <div class="full-mast">
-              <span class="mast-pole"></span>
-              <span class="yard yard-upper"></span>
-              <span class="yard yard-main"></span>
-              <span class="rig rig-left"></span>
-              <span class="rig rig-right"></span>
-            </div>
-          </div>
-          <div class="mast-target player-mast-target" id="playerMast" data-side="player" data-kind="mast" tabindex="0">
-            <div class="mast-target-label">MAST</div>
-            <div class="mast-pips" id="playerMastPips"></div>
-          </div>
+          <div class="ship-exterior" aria-hidden="true"><div class="hull-shape"></div><div class="deck-line"></div><div class="full-mast"><span class="mast-pole"></span><span class="yard yard-upper"></span><span class="yard yard-main"></span><span class="rig rig-left"></span><span class="rig rig-right"></span></div></div>
+          <div class="mast-target player-mast-target" id="playerMast" data-side="player" data-kind="mast"><div class="mast-target-label">MAST</div><div class="mast-pips" id="playerMastPips"></div></div>
           <div class="ship-grid player-grid" id="playerGrid"></div>
         </div>
 
@@ -75,18 +45,10 @@
       </div>
     </section>
 
-    <section class="panel status-panel">
-      <div>
-        <div class="eyebrow">Hovered Weapon</div>
-        <div id="weaponInfo" class="weapon-info">None</div>
-      </div>
-      <div>
-        <div class="eyebrow">Intent / Targets</div>
-        <div id="targetInfo" class="target-info">Hover a cannon or an intent icon.</div>
-      </div>
-    </section>
+    <section class="panel status-panel"><div><div class="eyebrow">Hovered Weapon</div><div id="weaponInfo" class="weapon-info">None</div></div><div><div class="eyebrow">Intent / Targets</div><div id="targetInfo" class="target-info">Hover a cannon or an intent icon.</div></div></section>
   </main>
 
+  <script src="combat-data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
