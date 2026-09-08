@@ -9,57 +9,27 @@
 <body>
   <main class="app">
     <header class="topbar">
-      <div>
-        <div class="eyebrow">Combat Sandbox</div>
-        <h1>High Seas — Alignment & Firing Arcs</h1>
-      </div>
-      <div class="help">Hover a cannon or intent icon · Z enemy arcs · X friendly arcs · ←/→ move · H exterior</div>
+      <div><div class="eyebrow">Combat Sandbox</div><h1>High Seas — Alignment & Firing Arcs</h1></div>
+      <div class="help">Hover cannon / intent · Z enemy arcs · X friendly arcs · ←/→ move · R reset turn · H exterior</div>
     </header>
-
     <section class="panel combat-panel">
       <div class="combat-stage" id="combatStage">
         <div class="corner-name enemy-corner">ENEMY — THE IRON GULL</div>
         <div class="corner-name player-corner">YOUR SHIP — THE WAYWARD</div>
-
         <div class="track-row" id="trackRow"></div>
-        <div class="track-chevrons">
-          <button id="moveAft" class="move-btn">◀</button>
-          <button id="moveFore" class="move-btn">▶</button>
-        </div>
-
+        <div class="track-chevrons"><button id="moveAft" class="move-btn">◀</button><button id="moveFore" class="move-btn">▶</button></div>
         <div class="ship-block enemy-block" id="enemyBlock">
-          <div class="mast-box enemy-mast" id="enemyMastBox">
-            <div class="mast-title">MAIN MAST</div>
-            <div class="pips" id="enemyMastPips"></div>
-          </div>
+          <div class="mast-box enemy-mast" id="enemyMastBox"><div class="mast-title">MAIN MAST</div><div class="pips" id="enemyMastPips"></div></div>
           <div class="ship-grid enemy-grid" id="enemyGrid"></div>
         </div>
-
         <div class="ship-block player-block" id="playerBlock">
-          <div class="mast-box player-mast" id="playerMastBox">
-            <div class="mast-title">MAIN MAST</div>
-            <div class="pips" id="playerMastPips"></div>
-          </div>
+          <div class="mast-box player-mast" id="playerMastBox"><div class="mast-title">MAIN MAST</div><div class="pips" id="playerMastPips"></div></div>
           <div class="ship-grid player-grid" id="playerGrid"></div>
         </div>
-
-        <div class="ghost-zone enemy-zone" id="enemyGhostZone"></div>
-        <div class="ghost-zone player-zone" id="playerGhostZone"></div>
-
         <svg class="arc-overlay" id="arcOverlay" aria-hidden="true"></svg>
       </div>
     </section>
-
-    <section class="panel status-panel">
-      <div>
-        <div class="eyebrow">Hovered / Selected</div>
-        <div id="weaponInfo" class="status-text">None</div>
-      </div>
-      <div>
-        <div class="eyebrow">Effect</div>
-        <div id="targetInfo" class="status-text">Hover a cannon, or click one of your gun decks to plan a shot.</div>
-      </div>
-    </section>
+    <section class="panel status-panel"><div><div class="eyebrow">Hovered / Selected</div><div id="weaponInfo" class="status-text">None</div></div><div><div class="eyebrow">Effect</div><div id="targetInfo" class="status-text">Hover an intent icon, or click a ready gun deck to plan a shot.</div></div></section>
   </main>
   <script src="combat-v2-data.js"></script>
   <script src="combat-v2-core.js"></script>
