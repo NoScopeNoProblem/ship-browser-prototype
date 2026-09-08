@@ -40,16 +40,16 @@ function iconMarkup(type, suffix='', small=false){
   const d = weapons[type];
   return `<span class="weapon-icon${small?' small':''}" title="${d.name}${suffix?' '+suffix:''}">${d.icon}${suffix?`<span class="weapon-label">${suffix}</span>`:''}</span>`;
 }
-function pipsMarkup(entity, hits=0, dodges=0){
+function pipsMarkup(entity, hits=0, dodges=0, prevented=0){
   const arr = [];
   for(let i=0;i<entity.max;i++){
     const alive = i < entity.hp;
     arr.push(alive ? '<span>♥</span>' : '<span class="empty">·</span>');
   }
-  let placed = 0;
-  for(let i=entity.hp-1; i>=0 && placed<hits; i--, placed++) arr[i] = '<span class="hit">✕</span>';
-  placed = 0;
-  for(let i=entity.hp-1-hits; i>=0 && placed<dodges; i--, placed++) arr[i] = '<span class="dodged-mark">↝</span>';
+  let cursor = entity.hp - 1;
+  for(let i=0; i<hits && cursor>=0; i++,cursor--) arr[cursor] = '<span class="hit" title="Incoming damage">✕</span>';
+  for(let i=0; i<dodges && cursor>=0; i++,cursor--) arr[cursor] = '<span class="dodged-mark" title="Avoided by movement">↝</span>';
+  for(let i=0; i<prevented && cursor>=0; i++,cursor--) arr[cursor] = '<span class="prevented-mark" title="Prevented: enemy gun disabled">⊘</span>';
   return arr.join(' ');
 }
 function roomHtml(r){
@@ -60,9 +60,18 @@ function renderTrack(){
   trackRow.innerHTML='';
   for(let i=0;i<TRACK_COLS;i++){
     const c = document.createElement('div');
-    c.className = 'track-cell' + (i===state.playerMastTrack ? ' mast-col' : '');
+    c.className = 'track-cell';
+    if(i===ENEMY_MAST_TRACK) c.classList.add('enemy-mast-col');
+    if(i===state.playerMastTrack) c.classList.add('player-mast-col');
+    if(i===ENEMY_MAST_TRACK && i===state.playerMastTrack) c.classList.add('shared-mast-col');
     trackRow.appendChild(c);
   }
+}
+function isPlayerEntityCurrentlyTargeted(id){
+  return enemyIntents.some(intent => {
+    const impact = projectedEnemyImpact(intent);
+    return impact && impact.id===id;
+  });
 }
 function makeRoom(r, side){
   const el = document.createElement('div');
@@ -71,22 +80,31 @@ function makeRoom(r, side){
   el.dataset.side = side;
   el.innerHTML = roomHtml(r);
   if(side==='player' && r.weapon){
-    el.addEventListener('mouseenter',()=>{ if(state.exterior) return; state.hoveredWeapon = {side, id:r.id}; refresh();});
-    el.addEventListener('mouseleave',()=>{ if(state.hoveredWeapon && state.hoveredWeapon.id===r.id){ state.hoveredWeapon=null; refresh(); }});
-    el.addEventListener('click',(e)=>{ e.stopPropagation(); if(state.exterior) return; state.selectedWeaponId = state.selectedWeaponId===r.id ? null : r.id; state.hoveredWeapon = {side, id:r.id}; refresh(); });
+    el.addEventListener('mouseenter',()=>{
+      if(state.exterior || isPlayerEntityCurrentlyTargeted(r.id)) return;
+      state.hoveredWeapon = {side, id:r.id};
+      refresh();
+    });
+    el.addEventListener('mouseleave',()=>{
+      if(state.hoveredWeapon && state.hoveredWeapon.id===r.id){ state.hoveredWeapon=null; refresh(); }
+    });
+    el.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      if(state.exterior) return;
+      state.hoveredWeapon = null;
+      state.selectedWeaponId = state.selectedWeaponId===r.id ? null : r.id;
+      refresh();
+    });
   }
   if(side==='enemy'){
-    el.addEventListener('mouseenter',()=>{ if(state.exterior) return; if(state.selectedWeaponId){ state.hoverEnemyTarget = r.id; refresh(); }});
-    el.addEventListener('mouseleave',()=>{ if(state.hoverEnemyTarget===r.id){ state.hoverEnemyTarget = null; refresh(); }});
     el.addEventListener('click',(e)=>{
-      if(state.exterior) return;
-      if(state.selectedWeaponId && isLegalTarget(r.id)){
-        e.stopPropagation();
-        state.playerIntents[state.selectedWeaponId] = r.id;
-        state.selectedWeaponId = null;
-        state.hoverEnemyTarget = null;
-        refresh();
-      }
+      if(state.exterior || !state.selectedWeaponId) return;
+      e.stopPropagation();
+      if(isLegalTarget(r.id)) state.playerIntents[state.selectedWeaponId] = r.id;
+      // Any enemy-room click ends the temporary targeting state, legal or not.
+      state.selectedWeaponId = null;
+      state.hoveredWeapon = null;
+      refresh();
     });
   }
   return el;
@@ -97,31 +115,35 @@ function renderShips(){
   playerRooms.forEach(r => playerGrid.appendChild(makeRoom(r,'player')));
   enemyMastPips.innerHTML = pipsMarkup(enemyMast);
   playerMastPips.innerHTML = pipsMarkup(playerMast);
-  enemyMastBox.onclick = ()=>{};
-  playerMastBox.onclick = ()=>{};
+  enemyMastBox.onclick = null;
+  playerMastBox.onclick = null;
   enemyMastBox.addEventListener('click',(e)=>{
-    if(state.selectedWeaponId && isLegalTarget(enemyMast.id)){
-      e.stopPropagation(); state.playerIntents[state.selectedWeaponId] = enemyMast.id; state.selectedWeaponId = null; refresh();
-    }
+    if(state.exterior || !state.selectedWeaponId) return;
+    e.stopPropagation();
+    if(isLegalTarget(enemyMast.id)) state.playerIntents[state.selectedWeaponId] = enemyMast.id;
+    state.selectedWeaponId = null;
+    state.hoveredWeapon = null;
+    refresh();
   });
 }
 function positionShips(){
   const w = ROOM_W();
   enemyBlock.style.left = `${TRACK_LEFT + ENEMY_LEFTMOST*w}px`;
   playerBlock.style.left = `${TRACK_LEFT + playerLeftmost()*w}px`;
-  enemyMastBox.style.left = `${ENEMY_MAST_COL*w + (w-48)/2}px`;
-  playerMastBox.style.left = `${PLAYER_MAST_LOCAL_COL*w + (w-48)/2}px`;
+  // Keep the mast target rectangles in the prior visual location: centered over the ship.
+  enemyMastBox.style.left = `${1.5*w - 24}px`;
+  playerMastBox.style.left = `${1.5*w - 24}px`;
   moveAft.disabled = state.playerMastTrack <= PLAYER_MAST_MIN;
   moveFore.disabled = state.playerMastTrack >= PLAYER_MAST_MAX;
 }
 function worldColX(col){ return TRACK_LEFT + col*ROOM_W(); }
 function laneY(side, lane){
   if(side==='player') return 340 + (lane==='mast' ? -56 : lane*ROOM_H());
-  return 46 + (lane==='mast' ? 152 : lane*ROOM_H());
+  return 46 + (lane==='mast' ? -56 : lane*ROOM_H());
 }
 function clearClasses(){
-  document.querySelectorAll('.enemy-intended,.dodged,.focus-source,.focus-target,.friendly-focus-target,.valid-target,.selectable').forEach(el=>{
-    el.classList.remove('enemy-intended','dodged','focus-source','focus-target','friendly-focus-target','valid-target','selectable');
+  document.querySelectorAll('.enemy-intended,.dodged,.prevented,.focus-source,.focus-target,.friendly-focus-target,.valid-target,.selectable').forEach(el=>{
+    el.classList.remove('enemy-intended','dodged','prevented','focus-source','focus-target','friendly-focus-target','valid-target','selectable');
   });
 }
 function getEntityElement(side,id){
