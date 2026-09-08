@@ -3,10 +3,10 @@ const TRACK_LEFT = 56;
 const TRACK_TOP = 265;
 const ROOM_W = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--roomW'));
 const ROOM_H = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--roomH'));
-const ENEMY_LEFTMOST = 1; // occupies columns 1-4 -> human 2-5
-const ENEMY_MAST_COL = 1; // within enemy ship
-const PLAYER_MAST_LOCAL_COL = 1; // within player ship
-const INITIAL_PLAYER_MAST_TRACK = 2; // matches enemy mast initially -> player occupies 1-3 -> human 2-4
+const ENEMY_LEFTMOST = 1;
+const ENEMY_MAST_COL = 1;
+const PLAYER_MAST_LOCAL_COL = 1;
+const INITIAL_PLAYER_MAST_TRACK = 2;
 const PLAYER_MAST_MIN = 1;
 const PLAYER_MAST_MAX = 5;
 
@@ -69,10 +69,8 @@ const enemyMastPips = document.getElementById('enemyMastPips');
 const playerMastPips = document.getElementById('playerMastPips');
 const arcOverlay = document.getElementById('arcOverlay');
 const enemyGhostZone = document.getElementById('enemyGhostZone');
-const playerGhostZone = document.getElementById('playerZone') || document.getElementById('playerGhostZone');
+const playerGhostZone = document.getElementById('playerGhostZone');
 const weaponInfo = document.getElementById('weaponInfo');
 const targetInfo = document.getElementById('targetInfo');
 const moveAft = document.getElementById('moveAft');
 const moveFore = document.getElementById('moveFore');
-
-document.addEventListener('click', onGlobalClick);
