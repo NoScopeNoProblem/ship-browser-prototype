@@ -3,10 +3,14 @@ const TRACK_LEFT = 56;
 const TRACK_TOP = 265;
 const ROOM_W = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--roomW'));
 const ROOM_H = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--roomH'));
-const ENEMY_LEFTMOST = 1;
+
+// Both ships begin with their main mast represented by the middle track segment.
+// The mast target boxes stay in their previous visual positions inside each ship.
+const ENEMY_LEFTMOST = 2;
 const ENEMY_MAST_COL = 1;
+const ENEMY_MAST_TRACK = ENEMY_LEFTMOST + ENEMY_MAST_COL;
 const PLAYER_MAST_LOCAL_COL = 1;
-const INITIAL_PLAYER_MAST_TRACK = 2;
+const INITIAL_PLAYER_MAST_TRACK = 3;
 const PLAYER_MAST_MIN = 1;
 const PLAYER_MAST_MAX = 5;
 
@@ -29,7 +33,7 @@ const enemyRooms = [
   {id:'e_u2', name:'UNKNOWN', sub:'', row:1, col:2, hp:2, max:2},
   {id:'e_hold', name:'HOLD', sub:'', row:1, col:3, hp:2, max:2, capacity:'Cargo 2/3'}
 ];
-const enemyMast = {id:'e_mast', name:'Mast', kind:'mast', col:ENEMY_LEFTMOST+ENEMY_MAST_COL, hp:3, max:3};
+const enemyMast = {id:'e_mast', name:'Mast', kind:'mast', col:ENEMY_MAST_TRACK, hp:3, max:3};
 
 const playerRooms = [
   {id:'p_std', name:'STANDARD', sub:'Gun Deck', row:0, col:0, hp:3, max:3, weapon:'standard', capacity:'2 loaded'},
@@ -41,10 +45,12 @@ const playerRooms = [
 ];
 const playerMast = {id:'p_mast', name:'Mast', kind:'mast', localCol:PLAYER_MAST_LOCAL_COL, hp:3, max:3};
 
+// Intents remain fixed in world-space. These values preserve the same starting
+// targets after recentering both ships: Hold, Magazine and Carpenter.
 const enemyIntents = [
-  {sourceId:'e_std', lane:1, targetWorld:1, damage:1},
-  {sourceId:'e_rep', lane:0, targetWorld:2, damage:1},
-  {sourceId:'e_long', lane:1, targetWorld:2, damage:1}
+  {sourceId:'e_std', lane:1, targetWorld:2, damage:1},
+  {sourceId:'e_rep', lane:0, targetWorld:3, damage:1},
+  {sourceId:'e_long', lane:1, targetWorld:3, damage:1}
 ];
 
 const state = {
