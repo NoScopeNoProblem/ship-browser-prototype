@@ -1,23 +1,29 @@
 /* Combat v3 interaction / resolution overrides */
-.combat-stage{min-height:760px!important}
+.combat-stage{min-height:880px!important}
 .enemy-block{top:110px!important}.player-block{top:490px!important}
 .track-row{top:365px!important}.track-chevrons{top:363px!important}
-.mast-box{top:-104px!important;width:72px!important;height:86px!important;padding:8px 5px!important;display:flex;flex-direction:column;align-items:center;justify-content:space-between}
+.mast-box{top:-86px!important;width:78px!important;height:86px!important;padding:8px 5px!important;display:flex;flex-direction:column;align-items:center;justify-content:space-between}
 .mast-title{writing-mode:horizontal-tb!important;transform:none!important;font:700 9px/1.1 Arial,sans-serif!important;text-align:center!important}
-.mast-box .pips{font-size:14px;white-space:nowrap}
+.mast-box .pips{font-size:15px;white-space:nowrap}
 .player-grid .room:hover,.player-mast:hover{box-shadow:inset 0 0 0 3px #b97b20!important}
 .evade-mark{display:none!important}
-.room.enemy-intended.dodged,.mast-box.enemy-intended.dodged{background:repeating-linear-gradient(-45deg,rgba(74,132,185,.28),rgba(74,132,185,.28) 6px,transparent 6px,transparent 12px),linear-gradient(rgba(193,76,66,.27),rgba(193,76,66,.27))!important}
-.room.dodged:not(.enemy-intended),.mast-box.dodged:not(.enemy-intended){background:repeating-linear-gradient(-45deg,rgba(74,132,185,.28),rgba(74,132,185,.28) 6px,transparent 6px,transparent 12px),rgba(74,132,185,.13)!important}
-.dodge-v3{position:absolute;left:7px;top:39px;width:42px;height:30px;border:2px solid #4b86b8;background:#e8f1f8;border-radius:5px;color:#326a98;z-index:11;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;font-weight:800;box-shadow:0 1px 2px rgba(0,0,0,.18)}
-.dodge-v3 .shot{font-size:12px;margin-right:-2px}.dodge-v3 .arrow{font-size:25px;line-height:1}.dodge-v3::after{content:'DODGE';position:absolute;top:31px;left:50%;transform:translateX(-50%);font-size:7px;letter-spacing:.08em;color:#326a98}
+.damage-empty{color:#b94f45;font-weight:700;opacity:.7}
+.room.enemy-intended.dodged,.mast-box.enemy-intended.dodged{background:repeating-linear-gradient(-45deg,rgba(74,132,185,.30),rgba(74,132,185,.30) 6px,transparent 6px,transparent 12px),linear-gradient(rgba(193,76,66,.27),rgba(193,76,66,.27))!important}
+.room.dodged:not(.enemy-intended),.mast-box.dodged:not(.enemy-intended){background:repeating-linear-gradient(-45deg,rgba(74,132,185,.30),rgba(74,132,185,.30) 6px,transparent 6px,transparent 12px),rgba(74,132,185,.13)!important}
+.dodge-v3{position:absolute;left:7px;top:35px;width:62px;height:38px;border:2px solid #4b86b8;background:#e8f1f8;border-radius:5px;color:#326a98;z-index:11;display:grid;grid-template-columns:18px 22px;grid-template-rows:22px 10px;align-items:center;justify-content:center;font-family:Arial,sans-serif;font-weight:800;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.dodge-v3 .shot{font-size:15px;justify-self:end}.dodge-v3 .shield{font-size:27px;line-height:1;justify-self:start}.dodge-v3 .dodge-word{grid-column:1/3;font-size:8px;letter-spacing:.08em;line-height:1;text-align:center;color:#326a98}
 .loading-v3{position:absolute;inset:30px 10px auto 10px;height:46px;z-index:12;display:flex;align-items:center;justify-content:center;gap:7px;background:rgba(239,229,207,.94);border:2px solid rgba(55,66,67,.6);font:800 12px/1 Arial,sans-serif;letter-spacing:.08em;pointer-events:none}
 .loading-v3 .wheel{font-size:27px;animation:v3spin 1.4s linear infinite}@keyframes v3spin{to{transform:rotate(360deg)}}
-.miss-marker.v3-focus-miss{box-shadow:0 0 0 4px rgba(185,123,32,.72)!important;border-color:#b97b20!important}
+.miss-marker.v3-focus-miss{box-shadow:0 0 0 4px rgba(185,123,32,.72)!important;border-color:#b97b20!important;background:#fff5d9!important}
 .not-range-v3{position:fixed;z-index:9999;transform:translate(-50%,-110%);padding:6px 9px;background:#172a2d;color:#f7edda;border-radius:3px;font:700 11px/1 Arial,sans-serif;letter-spacing:.04em;pointer-events:none;animation:v3tip .8s ease forwards}@keyframes v3tip{0%{opacity:0;transform:translate(-50%,-80%)}15%,70%{opacity:1}100%{opacity:0;transform:translate(-50%,-145%)}}
-.v3-end-turn{position:absolute;right:18px;top:353px;z-index:30;padding:10px 17px;border:2px solid #26393b;background:#f1ead8;color:#1f3335;font:700 13px/1 Georgia,serif;letter-spacing:.08em;cursor:pointer}.v3-end-turn:hover:not(:disabled){background:#fff8e9}.v3-end-turn:disabled{opacity:.45;cursor:default}
-.v3-combat-log{position:absolute;left:18px;bottom:18px;width:520px;max-height:112px;overflow:auto;z-index:26;background:rgba(235,226,207,.94);border-left:3px solid rgba(38,57,59,.55);padding:6px 9px;font:12px/1.35 Arial,sans-serif;color:#445153}.v3-log-line+.v3-log-line{margin-top:2px}.v3-log-player{color:#397f98;font-weight:700}.v3-log-enemy{color:#b94f45;font-weight:700}
-.v3-combat-phase{display:none;position:absolute;left:50%;bottom:17px;transform:translateX(-50%);z-index:31;font:800 17px/1 Arial,sans-serif;letter-spacing:.18em;color:#9a5a37}.v3-combat-phase.visible{display:block;animation:v3phase 1.15s ease-in-out infinite}@keyframes v3phase{0%,100%{opacity:.4}50%{opacity:1}}
+.v3-end-turn{position:absolute;right:18px;top:410px;z-index:30;padding:10px 17px;border:2px solid #26393b;background:#f1ead8;color:#1f3335;font:700 13px/1 Georgia,serif;letter-spacing:.08em;cursor:pointer}.v3-end-turn:hover:not(:disabled){background:#fff8e9}.v3-end-turn:disabled{opacity:.45;cursor:default}
+.v3-combat-log{position:absolute;left:18px;bottom:18px;width:520px;z-index:26;background:rgba(235,226,207,.96);border-left:3px solid rgba(38,57,59,.55);font:12px/1.35 Arial,sans-serif;color:#445153;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.v3-log-head{height:28px;display:flex;align-items:center;justify-content:space-between;padding:4px 6px 4px 9px;border-bottom:1px solid rgba(38,57,59,.18);font:700 10px/1 Arial,sans-serif;letter-spacing:.09em;color:#526164}
+.v3-log-toggle{width:24px;height:20px;padding:0;border:1px solid rgba(38,57,59,.35);background:#f5eddb;color:#26393b;font:700 15px/17px Arial,sans-serif;cursor:pointer}
+.v3-log-lines{max-height:92px;overflow:auto;padding:5px 9px 7px}
+.v3-combat-log.minimized{width:180px}.v3-combat-log.minimized .v3-log-lines{display:none}.v3-combat-log.minimized .v3-log-head{border-bottom:0}
+.v3-log-line+.v3-log-line{margin-top:2px}.v3-log-player{color:#397f98;font-weight:700}.v3-log-enemy{color:#b94f45;font-weight:700}
+.v3-combat-phase{display:none;position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:31;font:800 17px/1 Arial,sans-serif;letter-spacing:.18em;color:#9a5a37}.v3-combat-phase.visible{display:block;animation:v3phase 1.15s ease-in-out infinite}@keyframes v3phase{0%,100%{opacity:.4}50%{opacity:1}}
 .v3-projectile-layer,.v3-float-layer{position:absolute;inset:0;pointer-events:none}.v3-projectile-layer{z-index:40}.v3-float-layer{z-index:45}.v3-ball{position:absolute;width:10px;height:10px;margin:-5px;border-radius:50%;background:#1d292b;transition:transform .34s cubic-bezier(.3,.65,.4,1),opacity .1s;box-shadow:0 0 8px rgba(0,0,0,.35)}.v3-ball.player{box-shadow:0 0 9px rgba(57,127,152,.9)}.v3-ball.enemy{box-shadow:0 0 9px rgba(185,79,69,.9)}
 .v3-resolve-note{position:absolute;transform:translate(-50%,-50%);padding:6px 9px;background:#526266;color:#f7eedc;border-radius:3px;font:800 11px/1 Arial,sans-serif;letter-spacing:.06em;animation:v3float .65s ease forwards;white-space:nowrap}.v3-resolve-note.disabled,.v3-resolve-note.destroyed{background:#8d3d36}@keyframes v3float{0%{opacity:0;transform:translate(-50%,-20%)}18%,70%{opacity:1}100%{opacity:0;transform:translate(-50%,-95%)}}
 body.v3-resolving .room,body.v3-resolving .mast-box,body.v3-resolving .intent-chip,body.v3-resolving .move-btn{pointer-events:none!important}
