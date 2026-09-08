@@ -1,6 +1,26 @@
-/* Critical UI fixes: firing overlays must sit above ship rooms, and loading must be a compact badge. */
+/* Critical combat UI hotfixes */
 .arc-overlay{z-index:6!important;pointer-events:none!important}
-.loading-v3{inset:5px 5px auto auto!important;width:48px!important;height:20px!important;padding:1px 3px!important;gap:2px!important;border-width:1px!important;background:rgba(239,229,207,.96)!important;font:800 8px/1 Arial,sans-serif!important;letter-spacing:.04em!important}
-.loading-v3 .wheel{font-size:13px!important;animation:v3spin 1.4s linear infinite!important}
+
+/* Retire the old loading overlay entirely. v4 draws one compact badge instead. */
+.loading-v3{display:none!important}
+.loading-v4{position:absolute;right:5px;top:5px;z-index:18;min-width:38px;height:18px;padding:1px 4px;border:1px solid rgba(55,66,67,.58);background:rgba(239,229,207,.96);display:flex;align-items:center;justify-content:center;gap:3px;font:800 8px/1 Arial,sans-serif;letter-spacing:.04em;pointer-events:none;border-radius:2px;color:#34474a}
+.loading-v4 .wheel{font-size:11px;line-height:1;animation:v3spin 1.4s linear infinite}
 .room.weapon .room-title{padding-right:42px!important}
-.intent-chip{z-index:12!important}
+.intent-chip{z-index:22!important}
+
+/* Dedicated arc layer: independent of the older SVG so Z/intent hover cannot be cleared by legacy refreshes. */
+.v4-arc-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:16;pointer-events:none;overflow:visible}
+.v4-arc{stroke-width:1.45;vector-effect:non-scaling-stroke;fill-opacity:.055}
+.v4-arc.enemy{stroke:rgba(190,67,59,.66);fill:rgba(190,67,59,.12)}
+.v4-arc.enemy.overview{stroke:rgba(190,67,59,.48);fill:rgba(190,67,59,.075)}
+.v4-arc.friendly{stroke:rgba(56,112,151,.62);fill:rgba(56,112,151,.10)}
+.v4-source-focus{box-shadow:inset 0 0 0 3px rgba(190,67,59,.9)!important}
+.v4-target-focus{box-shadow:inset 0 0 0 3px rgba(190,67,59,.9)!important;background-color:rgba(193,76,66,.27)!important}
+.v4-overview-target{background-color:rgba(193,76,66,.22)!important}
+.miss-marker.v4-focus-miss{box-shadow:0 0 0 4px rgba(190,67,59,.7)!important;border-color:rgba(190,67,59,.9)!important;background:#fff0e8!important}
+
+/* Player targeting: mast must read exactly like a legal room target. */
+.mast-box.valid-target{box-shadow:inset 0 0 0 3px rgba(72,117,153,.92)!important;background:rgba(78,128,165,.18)!important}
+.mast-box.friendly-focus-target{box-shadow:inset 0 0 0 3px rgba(62,110,148,.92)!important}
+
+.v4-cannot-target{position:fixed;z-index:9999;transform:translate(-50%,-110%);padding:6px 9px;background:#172a2d;color:#f7edda;border-radius:3px;font:700 11px/1 Arial,sans-serif;letter-spacing:.04em;pointer-events:none;animation:v3tip .8s ease forwards}
