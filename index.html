@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>High Seas Combat Prototype</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Combat Sandbox</div>
+        <h1>High Seas — Alignment & Firing Arcs</h1>
+      </div>
+      <div class="help">Hover a cannon to preview its firing arc.</div>
+    </header>
+
+    <section class="panel combat-panel">
+      <div class="combat-stage" id="combatStage">
+        <div class="ship-block enemy-block">
+          <div class="ship-title-row">
+            <div>
+              <div class="ship-label">Enemy — Threat III</div>
+              <div class="ship-name">THE IRON GULL</div>
+            </div>
+            <div class="mast" data-side="enemy">
+              <span class="mast-label">Mast</span>
+              <span class="pips">♥ ♥ ♥</span>
+            </div>
+          </div>
+          <div class="ship-grid enemy-grid" id="enemyGrid"></div>
+        </div>
+
+        <div class="alignment-strip">
+          <div class="track-label">RELATIVE ALIGNMENT</div>
+          <div class="track">
+            <button id="moveAft" class="move-btn">◀ Move Aft</button>
+            <div class="track-readout" id="trackReadout">Broadside</div>
+            <button id="moveFore" class="move-btn">Move Fore ▶</button>
+          </div>
+          <div class="track-scale" id="trackScale"></div>
+        </div>
+
+        <div class="ship-block player-block" id="playerBlock">
+          <div class="ship-title-row">
+            <div>
+              <div class="ship-label">Your Ship</div>
+              <div class="ship-name">THE WAYWARD</div>
+            </div>
+            <div class="mast damaged" data-side="player">
+              <span class="mast-label">Mast</span>
+              <span class="pips">♥ <span class="hit">✕</span> <span class="hit">✕</span></span>
+            </div>
+          </div>
+          <div class="ship-grid player-grid" id="playerGrid"></div>
+        </div>
+
+        <svg class="arc-overlay" id="arcOverlay" aria-hidden="true"></svg>
+      </div>
+    </section>
+
+    <section class="panel status-panel">
+      <div>
+        <div class="eyebrow">Hovered Weapon</div>
+        <div id="weaponInfo" class="weapon-info">None</div>
+      </div>
+      <div>
+        <div class="eyebrow">Legal Targets</div>
+        <div id="targetInfo" class="target-info">Hover a cannon.</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
