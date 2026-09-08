@@ -13,42 +13,54 @@
         <div class="eyebrow">Combat Sandbox</div>
         <h1>High Seas — Alignment & Firing Arcs</h1>
       </div>
-      <div class="help">Hover a cannon · Hold <strong>Z</strong> enemy arcs · Hold <strong>X</strong> friendly arcs · <strong>← →</strong> move · <strong>H</strong> exterior view</div>
+      <div class="help">Hover a cannon or intent icon · Z enemy arcs · X friendly arcs · ←/→ move · H exterior</div>
     </header>
 
     <section class="panel combat-panel">
       <div class="combat-stage" id="combatStage">
-        <div class="fixed-ship-name enemy-name-fixed">
-          <span>Enemy — Threat III</span>
-          <strong>THE IRON GULL</strong>
-        </div>
-        <div class="fixed-ship-name player-name-fixed">
-          <span>Your Ship</span>
-          <strong>THE WAYWARD</strong>
+        <div class="corner-name enemy-corner">ENEMY — THE IRON GULL</div>
+        <div class="corner-name player-corner">YOUR SHIP — THE WAYWARD</div>
+
+        <div class="track-row" id="trackRow"></div>
+        <div class="track-chevrons">
+          <button id="moveAft" class="move-btn">◀</button>
+          <button id="moveFore" class="move-btn">▶</button>
         </div>
 
         <div class="ship-block enemy-block" id="enemyBlock">
-          <div class="ship-exterior" aria-hidden="true"><div class="hull-shape"></div><div class="deck-line"></div><div class="full-mast"><span class="mast-pole"></span><span class="yard yard-upper"></span><span class="yard yard-main"></span><span class="rig rig-left"></span><span class="rig rig-right"></span></div></div>
-          <div class="mast-target enemy-mast-target" id="enemyMast" data-side="enemy" data-kind="mast"><div class="mast-target-label">MAST</div><div class="mast-pips" id="enemyMastPips"></div></div>
+          <div class="mast-box enemy-mast" id="enemyMastBox">
+            <div class="mast-title">MAIN MAST</div>
+            <div class="pips" id="enemyMastPips"></div>
+          </div>
           <div class="ship-grid enemy-grid" id="enemyGrid"></div>
         </div>
 
-        <div class="alignment-strip" aria-label="Relative ship position"><button id="moveAft" class="move-btn move-left" aria-label="Move left">◀</button><div class="track-scale" id="trackScale"></div><button id="moveFore" class="move-btn move-right" aria-label="Move right">▶</button></div>
-
         <div class="ship-block player-block" id="playerBlock">
-          <div class="ship-exterior" aria-hidden="true"><div class="hull-shape"></div><div class="deck-line"></div><div class="full-mast"><span class="mast-pole"></span><span class="yard yard-upper"></span><span class="yard yard-main"></span><span class="rig rig-left"></span><span class="rig rig-right"></span></div></div>
-          <div class="mast-target player-mast-target" id="playerMast" data-side="player" data-kind="mast"><div class="mast-target-label">MAST</div><div class="mast-pips" id="playerMastPips"></div></div>
+          <div class="mast-box player-mast" id="playerMastBox">
+            <div class="mast-title">MAIN MAST</div>
+            <div class="pips" id="playerMastPips"></div>
+          </div>
           <div class="ship-grid player-grid" id="playerGrid"></div>
         </div>
+
+        <div class="ghost-zone enemy-zone" id="enemyGhostZone"></div>
+        <div class="ghost-zone player-zone" id="playerGhostZone"></div>
 
         <svg class="arc-overlay" id="arcOverlay" aria-hidden="true"></svg>
       </div>
     </section>
 
-    <section class="panel status-panel"><div><div class="eyebrow">Hovered Weapon</div><div id="weaponInfo" class="weapon-info">None</div></div><div><div class="eyebrow">Intent / Targets</div><div id="targetInfo" class="target-info">Hover a cannon or an intent icon.</div></div></section>
+    <section class="panel status-panel">
+      <div>
+        <div class="eyebrow">Hovered / Selected</div>
+        <div id="weaponInfo" class="status-text">None</div>
+      </div>
+      <div>
+        <div class="eyebrow">Effect</div>
+        <div id="targetInfo" class="status-text">Hover a cannon, or click one of your gun decks to plan a shot.</div>
+      </div>
+    </section>
   </main>
-
-  <script src="combat-data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
