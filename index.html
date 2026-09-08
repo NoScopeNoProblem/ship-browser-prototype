@@ -36,6 +36,10 @@
   <script src="combat-v2-core.js"></script>
   <script src="combat-v2-ui.js"></script>
   <script src="combat-v2-controls.js"></script>
+  <script>
+    var enemyMastEl = enemyMastBox;
+    function roomWidth(){ const el=enemyGrid.querySelector('.room'); return el ? el.getBoundingClientRect().width : 132; }
+  </script>
   <script src="combat-v3-turn.js"></script>
 </body>
 </html>
