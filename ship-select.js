@@ -21,7 +21,9 @@
       ['Magazine', {type:'magazine', name:'MAGAZINE'}]
     ],
     'Support': [
-      ['Carpenter', {type:'carpenter', name:'CARPENTER'}]
+      ['Carpenter', {type:'carpenter', name:'CARPENTER'}],
+      ['Sailmaster', {type:'sailmaster', name:'SAILMASTER'}],
+      ['Boatswain', {type:'boatswain', name:'BOATSWAIN'}]
     ]
   };
 
@@ -150,6 +152,13 @@
     renderAll();
   }
 
+  function supportIcon(room){
+    if(room.type==='magazine')return '▣';
+    if(room.type==='carpenter')return '♥+';
+    if(room.type==='sailmaster')return '⛵↻';
+    if(room.type==='boatswain')return '⛨';
+    return '□';
+  }
   function shipPreview(side){
     const setup=state[side], editing=state.editingSide===side, selected=state.selectedRoomId;
     const outer=document.createElement('div');outer.className=`ship-cutaway ${editing?'editing':''}`;outer.style.setProperty('--cols',setup.columns);
@@ -159,7 +168,7 @@
       const cell=document.createElement('button');cell.type='button';cell.className='preview-room';cell.dataset.id=room.id;
       cell.classList.toggle('selected',editing&&selected===room.id);
       cell.disabled=!editing;
-      const icon=room.weapon ? catalog.weapons[room.weapon]?.icon||'●' : room.type==='magazine'?'▣':room.type==='carpenter'?'♥+':'□';
+      const icon=room.weapon ? catalog.weapons[room.weapon]?.icon||'●' : supportIcon(room);
       cell.innerHTML=`<span class="room-icon">${icon}</span><strong>${actualText(actualName(room))}</strong><span class="room-hp">${'♥'.repeat(room.hp)}</span>`;
       cell.addEventListener('click',()=>{state.selectedRoomId=room.id;renderAll();});
       grid.appendChild(cell);
@@ -199,12 +208,20 @@
     if(els.deleteShip)els.deleteShip.hidden=!state.editingSavedId;
   }
 
+  function libraryDetail(def){
+    if(def.weapon)return catalog.weapons[def.weapon]?.icon||'';
+    if(def.type==='magazine')return 'Quick Load';
+    if(def.type==='carpenter')return 'Repair';
+    if(def.type==='sailmaster')return 'Reset Sails';
+    if(def.type==='boatswain')return 'Brace';
+    return 'Cargo';
+  }
   function renderLibrary(){
     els.roomLibrary.innerHTML='';
     Object.entries(roomLibrary).forEach(([group,items],index)=>{
       const details=document.createElement('details');details.open=index===0;const summary=document.createElement('summary');summary.textContent=group;details.append(summary);
       const list=document.createElement('div');list.className='library-items';
-      items.forEach(([label,def])=>{const b=document.createElement('button');b.type='button';b.dataset.roomKey=label;b.innerHTML=`<strong>${label}</strong><span>${def.weapon?catalog.weapons[def.weapon]?.icon||'':def.type==='magazine'?'Quick Load':def.type==='carpenter'?'Repair':'Cargo'}</span>`;b.addEventListener('click',()=>replaceSelectedRoom(def));list.append(b);});
+      items.forEach(([label,def])=>{const b=document.createElement('button');b.type='button';b.dataset.roomKey=label;b.innerHTML=`<strong>${label}</strong><span>${libraryDetail(def)}</span>`;b.addEventListener('click',()=>replaceSelectedRoom(def));list.append(b);});
       details.append(list);els.roomLibrary.append(details);
     });
   }
@@ -265,14 +282,8 @@
 
     const playerWasDeleted=state.sourcePlayer===id;
     const enemyWasDeleted=state.sourceEnemy===id;
-    if(playerWasDeleted){
-      state.sourcePlayer='wayward';
-      state.player=normalizeDraft(catalog.shipSetups.wayward,'player');
-    }
-    if(enemyWasDeleted){
-      state.sourceEnemy='blackAlbatross';
-      state.enemy=normalizeDraft(catalog.shipSetups.blackAlbatross,'enemy');
-    }
+    if(playerWasDeleted){state.sourcePlayer='wayward';state.player=normalizeDraft(catalog.shipSetups.wayward,'player');}
+    if(enemyWasDeleted){state.sourceEnemy='blackAlbatross';state.enemy=normalizeDraft(catalog.shipSetups.blackAlbatross,'enemy');}
 
     const last=readJSON(MATCH_KEY,null);
     if(last){
@@ -282,10 +293,7 @@
       if(changed)localStorage.setItem(MATCH_KEY,JSON.stringify(last));
     }
 
-    state.editingSide=null;
-    state.selectedRoomId=null;
-    state.editingSavedId=null;
-    renderAll();
+    state.editingSide=null;state.selectedRoomId=null;state.editingSavedId=null;renderAll();
   }
 
   function setupForCombat(setup,side){
@@ -308,10 +316,7 @@
       sourceId:e.idMap[intent.sourceId],
       targetId:intent.targetId==='p_mast'?'p_mast':p.idMap[intent.targetId]
     })).filter(intent=>intent.sourceId&&intent.targetId);
-    const match={
-      player:p.setup,enemy:e.setup,
-      sourcePlayer:state.sourcePlayer,sourceEnemy:state.sourceEnemy,savedAt:Date.now()
-    };
+    const match={player:p.setup,enemy:e.setup,sourcePlayer:state.sourcePlayer,sourceEnemy:state.sourceEnemy,savedAt:Date.now()};
     localStorage.setItem(MATCH_KEY,JSON.stringify(match));
     const u=new URL('combat.html',window.location.href);u.searchParams.set('player','__dev_player');u.searchParams.set('enemy','__dev_enemy');window.location.href=u.toString();
   }
