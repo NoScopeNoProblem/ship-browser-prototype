@@ -1,0 +1,12 @@
+.player-corner .v22-dev-stats{
+  display:inline-block;
+  margin-left:12px;
+  padding-left:10px;
+  border-left:1px solid rgba(214,226,232,.28);
+  font-size:10px;
+  font-weight:650;
+  letter-spacing:.055em;
+  opacity:.72;
+  white-space:nowrap;
+  vertical-align:1px;
+}
