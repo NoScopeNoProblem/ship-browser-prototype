@@ -1,24 +1,34 @@
 (() => {
   const wait = ms => new Promise(r => setTimeout(r, ms));
 
+  function cadenceFor(room){
+    return weapons[room?.weapon]?.cadence || {initialLoadTurns:0,reloadTurns:1,shotsBeforeReload:1};
+  }
+  function initialWeaponState(room){
+    const cadence=cadenceFor(room);
+    const shots=Math.max(1,cadence.shotsBeforeReload||1);
+    if((cadence.initialLoadTurns||0)>0){
+      return {mode:'loading',remaining:cadence.initialLoadTurns,shotsLeft:shots};
+    }
+    return {mode:'ready',shotsLeft:shots};
+  }
+  const weaponStates={};
+  [...playerRooms,...enemyRooms].filter(r=>r.weapon).forEach(r=>{ weaponStates[r.id]=initialWeaponState(r); });
+
   const phase = {
     resolving: false,
     turn: 1,
     startMast: state.playerMastTrack,
-    weapon: {
-      p_std:   { mode:'ready' },
-      p_heavy: { mode:'loading', remaining:1 },
-      e_std:   { mode:'ready' },
-      e_heavy: { mode:'loading', remaining:1 },
-      e_rep:   { mode:'ready', burstLeft:2 },
-      e_long:  { mode:'ready' }
-    }
+    weapon: weaponStates
   };
 
   const baseRefresh = refresh;
 
+  function roomForWeaponId(id){
+    return [...playerRooms,...enemyRooms].find(r=>r.id===id) || null;
+  }
   function wstate(id){
-    if(!phase.weapon[id]) phase.weapon[id] = {mode:'ready'};
+    if(!phase.weapon[id]) phase.weapon[id] = initialWeaponState(roomForWeaponId(id));
     return phase.weapon[id];
   }
   function isReady(room){
@@ -30,29 +40,20 @@
     });
   }
 
-  // Small public bridge for room actions such as Magazine reloads. Keep the actual
-  // cadence state owned here so helpers cannot drift from combat resolution.
   window.combatTurn = {
     isReady(id){ return isReady(sourceEntity(id.startsWith('e_')?'enemy':'player', id)); },
     getWeaponState(id){ return {...wstate(id)}; },
     setWeaponState(id, next){ phase.weapon[id] = {...next}; syncLoadingFlags(); },
-    setReady(id){ phase.weapon[id] = {mode:'ready'}; syncLoadingFlags(); },
+    setReady(id){
+      const room=roomForWeaponId(id);
+      const shots=Math.max(1,cadenceFor(room).shotsBeforeReload||1);
+      phase.weapon[id] = {mode:'ready',shotsLeft:shots};
+      syncLoadingFlags();
+    },
     get turn(){ return phase.turn; },
-    get resolving(){ return phase.resolving; }
+    get resolving(){ return phase.resolving; },
+    get startMast(){ return phase.startMast; }
   };
-
-  // Add an enemy Heavy intent. It is invisible on turn 1 because Heavy is loading,
-  // then becomes a normal 2-damage intent as soon as Heavy is ready on turn 2.
-  if(!enemyIntents.some(i => i.sourceId === 'e_heavy')){
-    const target = playerRooms.find(r => r.id === 'p_heavy') || playerRooms[0];
-    enemyIntents.push({
-      sourceId:'e_heavy',
-      lane: target.row,
-      targetWorld: (phase.startMast - PLAYER_MAST_LOCAL_COL) + target.col,
-      damage:2,
-      logicalTargetId: target.id
-    });
-  }
 
   function baselineEntityAt(lane, worldCol){
     const left = phase.startMast - PLAYER_MAST_LOCAL_COL;
@@ -60,8 +61,6 @@
     return playerRooms.find(r => r.row === lane && left + r.col === worldCol) || null;
   }
 
-  // Give every enemy shot a logical room target so a new turn can re-aim from the
-  // player's new starting alignment without carrying old-turn dodge state forward.
   enemyIntents.forEach(intent => {
     if(intent.logicalTargetId) return;
     const target = baselineEntityAt(intent.lane, intent.targetWorld);
@@ -88,7 +87,6 @@
     });
   }
 
-  // Persistent damage uses an empty red heart in subsequent turns.
   pipsMarkup = function(entity, hits=0, dodges=0, prevented=0){
     const arr = [];
     for(let i=0;i<entity.max;i++){
@@ -127,7 +125,7 @@
 
     enemyIntents.forEach(intent => {
       const source = sourceEntity('enemy', intent.sourceId);
-      if(!source || source.hp <= 0 || !isReady(source)) return;
+      if(!source || source.hp <= 0 || !isReady(source) || intent.inactive) return;
 
       const current = projectedEnemyImpact(intent);
       const original = baselineImpact(intent);
@@ -155,8 +153,6 @@
     return {hits, dodges, prevented, targetMap, preventedTargetMap, missMap, disabledSources};
   };
 
-  // Robust chip construction: every icon carries the exact source id, and the
-  // hover callbacks do not rely on hovering the parent room.
   addEnemyIntentStack = function(targetEl, intents, prevented=false){
     let stack = targetEl.querySelector('.intent-stack.enemy-stack');
     if(!stack){
@@ -166,6 +162,7 @@
     }
     intents.forEach(intent => {
       const src = sourceEntity('enemy', intent.sourceId);
+      if(!src) return;
       const chip = document.createElement('div');
       chip.className = 'intent-chip' + (prevented ? ' prevented' : '');
       chip.dataset.sourceId = intent.sourceId;
@@ -187,6 +184,7 @@
     }
     intents.forEach(intent => {
       const src = sourceEntity('player', intent.sourceId);
+      if(!src) return;
       const chip = document.createElement('div');
       chip.className = 'intent-chip friendly';
       chip.dataset.sourceId = intent.sourceId;
@@ -200,6 +198,7 @@
 
   addMissMarker = function(intent){
     const source = sourceEntity('enemy', intent.sourceId);
+    if(!source) return;
     const marker = document.createElement('div');
     marker.className = 'miss-marker';
     marker.dataset.sourceId = intent.sourceId;
@@ -234,19 +233,20 @@
     drawArc(side, src);
 
     if(side === 'enemy'){
-      const intent = enemyIntents.find(i => i.sourceId === src.id);
+      const intent = enemyIntents.find(i => i.sourceId === src.id && !i.inactive);
       const impact = intent ? projectedEnemyImpact(intent) : null;
       const enemyState = enemyIntentDistribution(playerIntentDistribution());
       if(impact){
         const targetEl = getEntityElement('player', impact.id);
         if(enemyState.disabledSources.has(src.id)) targetEl.classList.add('prevented');
         else targetEl.classList.add('focus-target');
-      } else {
+      } else if(intent){
         const miss = stage.querySelector(`.miss-marker[data-source-id="${src.id}"]`);
         if(miss) miss.classList.add('v3-focus-miss');
       }
       weaponInfo.innerHTML = `${iconMarkup(src.weapon,enemySuffix[src.id]||'',true)} ${weapons[src.weapon].name}`;
-      if(enemyState.disabledSources.has(src.id)) targetInfo.textContent = impact ? `Prevented before its shot reaches ${impact.name}.` : 'Prevented before firing.';
+      if(!intent) targetInfo.textContent='No shot planned this turn.';
+      else if(enemyState.disabledSources.has(src.id)) targetInfo.textContent = impact ? `Prevented before its shot reaches ${impact.name}.` : 'Prevented before firing.';
       else targetInfo.textContent = impact ? `${impact.name}: ${intent.damage} damage` : 'MISS — the aimed space is empty.';
     } else {
       const targetId = state.playerIntents[src.id];
@@ -266,7 +266,6 @@
     if(!phase.resolving) refresh();
   };
 
-  // Extra delegated hover path protects against room/chip re-rendering during testing.
   stage.addEventListener('pointerover', e => {
     const chip = e.target.closest && e.target.closest('.intent-chip[data-source-id]');
     if(!chip || phase.resolving) return;
@@ -304,13 +303,13 @@
 
     if(!isReady(entity)){
       weaponInfo.innerHTML = `${iconMarkup(entity.weapon,'',true)} ${weapons[entity.weapon].name}`;
-      targetInfo.textContent = 'LOADING — cannot fire this turn.';
+      targetInfo.textContent = entity.hp<=0 ? 'DISABLED — cannot fire.' : 'LOADING — cannot fire this turn.';
       return true;
     }
 
     drawArc(state.hoveredWeapon.side, entity);
     if(state.hoveredWeapon.side === 'enemy'){
-      const intent = enemyIntents.find(i => i.sourceId === entity.id);
+      const intent = enemyIntents.find(i => i.sourceId === entity.id && !i.inactive);
       if(!intent){
         weaponInfo.innerHTML = `${iconMarkup(entity.weapon,enemySuffix[entity.id]||'',true)} ${weapons[entity.weapon].name}`;
         targetInfo.textContent = 'No shot planned this turn.';
@@ -367,15 +366,6 @@
       d.innerHTML = '<span class="shot">●</span><span class="shield">⤴</span><span class="dodge-word">DODGED</span>';
       el.appendChild(d);
     });
-    [...playerRooms, ...enemyRooms].filter(r => r.weapon && r.hp>0).forEach(r => {
-      if(wstate(r.id).mode !== 'loading') return;
-      const el = getEntityElement(r.id.startsWith('p_') ? 'player' : 'enemy', r.id);
-      if(!el) return;
-      const badge = document.createElement('div');
-      badge.className = 'loading-v3';
-      badge.innerHTML = '<span class="wheel">↻</span><span>LOAD</span>';
-      el.appendChild(badge);
-    });
   }
 
   refresh = function(){
@@ -422,7 +412,6 @@
     baseMoveRight();
   };
 
-  // UI added by the combat resolver.
   const endTurn = document.createElement('button');
   endTurn.className = 'v3-end-turn';
   endTurn.textContent = 'END TURN';
@@ -483,9 +472,7 @@
       src.connect(filter).connect(gain).connect(c.destination); src.start(now);
     }catch{}
   }
-  function splashSound(){
-    noiseBurst(.48,.22,'lowpass',1500);
-  }
+  function splashSound(){ noiseBurst(.48,.22,'lowpass',1500); }
   function splinterSound(){
     noiseBurst(.24,.28,'highpass',1050);
     setTimeout(() => noiseBurst(.14,.14,'bandpass',2800), 45);
@@ -516,7 +503,9 @@
   }
   function missPoint(intent){
     const pg=playerGrid.getBoundingClientRect(), sg=stage.getBoundingClientRect();
-    return {x:worldColX(intent.targetWorld)+roomWidth()/2, y:pg.top-sg.top+((intent.lane===1?1:0)+.5)*(pg.height/2)};
+    if(intent.lane==='mast') return center(playerMastBox);
+    const rows=Math.max(1,PLAYER_SHIP_SETUP.rows||1);
+    return {x:worldColX(intent.targetWorld)+roomWidth()/2, y:pg.top-sg.top+(Number(intent.lane)+.5)*(pg.height/rows)};
   }
   async function animateBall(fromEl,to,side,outcome){
     const a=center(fromEl), b=to instanceof Element?center(to):to;
@@ -538,12 +527,21 @@
     const before=entity.hp; entity.hp=Math.max(0,entity.hp-amount); return before>0 && entity.hp===0;
   }
   function setLoadingAfterFire(room){
+    const cadence=cadenceFor(room);
     const s=wstate(room.id);
-    if(room.weapon==='repeater'){
-      s.burstLeft=(s.burstLeft??2)-1;
-      if(s.burstLeft<=0){ s.mode='loading'; s.remaining=1; }
-    } else {
-      s.mode='loading'; s.remaining=1;
+    const shots=Math.max(1,cadence.shotsBeforeReload||1);
+    s.shotsLeft=(s.shotsLeft??shots)-1;
+    if(s.shotsLeft<=0){
+      const reloadTurns=Math.max(0,cadence.reloadTurns??1);
+      if(reloadTurns>0){
+        s.mode='loading';
+        s.remaining=reloadTurns;
+      }else{
+        s.mode='ready';
+      }
+      s.shotsLeft=shots;
+    }else{
+      s.mode='ready';
     }
   }
   function finishLoadsThatStartedTurn(loadingIds){
@@ -552,8 +550,10 @@
       if(s.mode!=='loading') return;
       s.remaining=(s.remaining||1)-1;
       if(s.remaining<=0){
-        s.mode='ready'; delete s.remaining;
-        if(id==='e_rep'||id==='p_rep') s.burstLeft=2;
+        const room=roomForWeaponId(id);
+        s.mode='ready';
+        delete s.remaining;
+        s.shotsLeft=Math.max(1,cadenceFor(room).shotsBeforeReload||1);
       }
     });
   }
@@ -561,6 +561,7 @@
   function resetTurn(){
     if(phase.resolving) return;
     state.playerMastTrack=phase.startMast;
+    state.turnStartMast=phase.startMast;
     state.playerIntents={};
     state.selectedWeaponId=null; state.hoveredWeapon=null; state.hoverIntent=null; state.overview=null; state.exterior=false;
     document.body.classList.remove('exterior-mode');
@@ -581,7 +582,7 @@
     refresh();
     logLine(`<b>Turn ${resolvingTurn} resolves.</b>`);
 
-    for(const room of playerRooms.filter(r=>r.weapon).sort((a,b)=>a.col-b.col)){
+    for(const room of playerRooms.filter(r=>r.weapon).sort((a,b)=>(a.col-b.col)||(a.row-b.row))){
       if(room.hp<=0) continue;
       if(!isReady(room)){
         await floatNote(getEntityElement('player',room.id),'LOADING');
@@ -602,7 +603,7 @@
     }
 
     await wait(160);
-    for(const room of enemyRooms.filter(r=>r.weapon).sort((a,b)=>a.col-b.col)){
+    for(const room of enemyRooms.filter(r=>r.weapon).sort((a,b)=>(a.col-b.col)||(a.row-b.row))){
       if(room.hp<=0){
         await floatNote(getEntityElement('enemy',room.id),'DISABLED','disabled');
         logLine(`${colorSpan('enemy',weapons[room.weapon].name)} is disabled — action cancelled.`);
@@ -613,7 +614,7 @@
         logLine(`${colorSpan('enemy',weapons[room.weapon].name)} is loading.`);
         continue;
       }
-      const intent=enemyIntents.find(i=>i.sourceId===room.id);
+      const intent=enemyIntents.find(i=>i.sourceId===room.id && !i.inactive);
       if(!intent) continue;
       const impact=projectedEnemyImpact(intent);
       if(!impact){
@@ -632,15 +633,10 @@
     }
 
     finishLoadsThatStartedTurn(loadingAtStart);
-    // Guard the key prototype rule explicitly: both Heavy Cannons load on turn 1
-    // and are ready at the beginning of turn 2.
-    if(resolvingTurn===1){
-      phase.weapon.p_heavy={mode:'ready'};
-      phase.weapon.e_heavy={mode:'ready'};
-    }
 
     phase.turn++;
     phase.startMast=state.playerMastTrack;
+    state.turnStartMast=state.playerMastTrack;
     retargetEnemyIntents();
     phase.resolving=false;
     endTurn.disabled=false;
@@ -651,7 +647,6 @@
 
   endTurn.addEventListener('click',resolveTurn);
 
-  // Reliable hold-Z / hold-X handling, independent of the older prototype listeners.
   window.addEventListener('keydown',e => {
     if(phase.resolving) return;
     if(e.code==='KeyZ'){
