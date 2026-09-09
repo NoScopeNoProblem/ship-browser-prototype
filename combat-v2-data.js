@@ -10,7 +10,7 @@ const WEAPON_ARCHETYPES = {
     cadence:{initialLoadTurns:1, reloadTurns:1, shotsBeforeReload:1}
   },
   repeater: {
-    name:'Repeater Cannon', range:1, arc:1, damage:1, icon:'≡→',
+    name:'Repeater Cannon', range:1, arc:1, damage:1, icon:'≡→'},
     cadence:{initialLoadTurns:0, reloadTurns:1, shotsBeforeReload:2}
   },
   long: {
@@ -42,9 +42,9 @@ const SHIP_SETUPS = {
       {id:'p_std', type:'gun', name:'STANDARD', sub:'Gun Deck', row:0, col:0, hp:3, weapon:'standard', capacity:'2 loaded'},
       {id:'p_mag', type:'magazine', name:'MAGAZINE', row:0, col:1, hp:2, capacity:'6 / 6'},
       {id:'p_heavy', type:'gun', name:'HEAVY', sub:'Gun Deck', row:0, col:2, hp:3, weapon:'heavy'},
-      {id:'p_hold1', type:'storage', name:'GENERAL HOLD', row:1, col:0, hp:2, capacity:'2 / 3'},
+      {id:'p_hold1', type:'storage', name:'HOLD', row:1, col:0, hp:2, capacity:'2 / 3'},
       {id:'p_carp', type:'carpenter', name:'CARPENTER', row:1, col:1, hp:2, capacity:'Timber 4/4'},
-      {id:'p_hold2', type:'storage', name:'GENERAL HOLD', row:1, col:2, hp:2, capacity:'1 / 3'}
+      {id:'p_hold2', type:'storage', name:'HOLD', row:1, col:2, hp:2, capacity:'1 / 3'}
     ]
   },
   ironGull: {
@@ -54,7 +54,7 @@ const SHIP_SETUPS = {
       {id:'e_heavy', type:'gun', name:'HEAVY', sub:'Cannon', row:0, col:1, hp:4, weapon:'heavy'},
       {id:'e_rep', type:'gun', name:'REPEATER', sub:'Cannon', row:0, col:2, hp:3, weapon:'repeater'},
       {id:'e_long', type:'gun', name:'LONG GUN', row:0, col:3, hp:2, weapon:'long'},
-      {id:'e_u1', type:'unknown', name:'UNKNOWN', revealName:'GENERAL HOLD', hidden:true, row:1, col:0, hp:2},
+      {id:'e_u1', type:'unknown', name:'UNKNOWN', revealName:'HOLD', hidden:true, row:1, col:0, hp:2},
       {id:'e_carp', type:'carpenter', name:'CARPENTER', row:1, col:1, hp:2, capacity:'Timber 3/4'},
       {id:'e_u2', type:'magazine', name:'UNKNOWN', revealName:'MAGAZINE', hidden:true, row:1, col:2, hp:2},
       {id:'e_hold', type:'storage', name:'HOLD', row:1, col:3, hp:2, capacity:'Cargo 2/3'}
