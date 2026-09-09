@@ -4,12 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>High Seas Combat Prototype</title>
-  <link rel="stylesheet" href="styles.css?v=20260909f" />
-  <link rel="stylesheet" href="combat-v3-overrides.css?v=20260909f" />
-  <link rel="stylesheet" href="combat-v3-hotfix.css?v=20260909f" />
-  <link rel="stylesheet" href="combat-v5-actions.css?v=20260909f" />
-  <link rel="stylesheet" href="combat-v6-effects.css?v=20260909f" />
-  <link rel="stylesheet" href="combat-v7-targeting.css?v=20260909f" />
+  <link rel="stylesheet" href="styles.css?v=20260909g" />
+  <link rel="stylesheet" href="combat-v3-overrides.css?v=20260909g" />
+  <link rel="stylesheet" href="combat-v3-hotfix.css?v=20260909g" />
+  <link rel="stylesheet" href="combat-v5-actions.css?v=20260909g" />
+  <link rel="stylesheet" href="combat-v6-effects.css?v=20260909g" />
+  <link rel="stylesheet" href="combat-v7-targeting.css?v=20260909g" />
+  <link rel="stylesheet" href="combat-v8-scale.css?v=20260909g" />
 </head>
 <body>
   <main class="app">
@@ -36,19 +37,20 @@
     </section>
     <section class="panel status-panel"><div><div class="eyebrow">Hovered / Selected</div><div id="weaponInfo" class="status-text">None</div></div><div><div class="eyebrow">Effect</div><div id="targetInfo" class="status-text">Hover an intent icon, or click a ready gun deck to plan a shot.</div></div></section>
   </main>
-  <script src="combat-v2-data.js?v=20260909f"></script>
-  <script src="combat-v2-core.js?v=20260909f"></script>
-  <script src="combat-v2-ui.js?v=20260909f"></script>
-  <script src="combat-v2-controls.js?v=20260909f"></script>
+  <script src="combat-v2-data.js?v=20260909g"></script>
+  <script src="combat-v2-core.js?v=20260909g"></script>
+  <script src="combat-v2-ui.js?v=20260909g"></script>
+  <script src="combat-v2-controls.js?v=20260909g"></script>
   <script>
     var enemyMastEl = enemyMastBox;
     function roomWidth(){ const el=enemyGrid.querySelector('.room'); return el ? el.getBoundingClientRect().width : 132; }
   </script>
-  <script src="combat-v3-turn.js?v=20260909f"></script>
-  <script src="combat-v3-layout-fix.js?v=20260909f"></script>
-  <script src="combat-v4-hotfix.js?v=20260909f"></script>
-  <script src="combat-v5-actions.js?v=20260909f"></script>
-  <script src="combat-v6-effects.js?v=20260909f"></script>
-  <script src="combat-v7-targeting.js?v=20260909f"></script>
+  <script src="combat-v3-turn.js?v=20260909g"></script>
+  <script src="combat-v3-layout-fix.js?v=20260909g"></script>
+  <script src="combat-v4-hotfix.js?v=20260909g"></script>
+  <script src="combat-v5-actions.js?v=20260909g"></script>
+  <script src="combat-v6-effects.js?v=20260909g"></script>
+  <script src="combat-v7-targeting.js?v=20260909g"></script>
+  <script src="combat-v8-scale.js?v=20260909g"></script>
 </body>
 </html>
