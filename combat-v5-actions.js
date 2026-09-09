@@ -1,52 +1,52 @@
 (() => {
   const utility = {
     selected: null,
-    used: { p_carp:false, p_mag:false },
+    used: {},
     rollback: [],
+    quickLoaded: new Set(),
+    quickLoadedFiring: new Set(),
     wasResolving: document.body.classList.contains('v3-resolving')
   };
 
   function resolving(){ return !!(window.combatTurn && combatTurn.resolving); }
   function roomById(id){ return playerRooms.find(r => r.id === id) || null; }
-  function utilityRoom(id){ return id === 'p_carp' || id === 'p_mag'; }
+  function isUtilityRoom(room){ return !!room && (room.actionType === 'repair' || room.actionType === 'quickLoad'); }
+  function wasUsed(id){ return !!utility.used[id]; }
 
-  function eligibleTargets(id){
-    if(id === 'p_carp'){
+  function eligibleTargets(sourceOrId){
+    const source = typeof sourceOrId === 'string' ? roomById(sourceOrId) : sourceOrId;
+    if(!source) return [];
+    if(source.actionType === 'repair'){
       return playerRooms.filter(r => r.hp > 0 && r.hp < r.max);
     }
-    if(id === 'p_mag'){
+    if(source.actionType === 'quickLoad'){
       return playerRooms.filter(r => r.weapon && r.hp > 0 && r.loading);
     }
     return [];
   }
 
-  function tooltip(el, text){
-    if(!el) return;
-    showRoomTooltip(el, text);
-  }
-
-  function clearUtilitySelection(){
-    utility.selected = null;
-  }
+  function tooltip(el, text){ if(el) showRoomTooltip(el, text); }
+  function clearUtilitySelection(){ utility.selected = null; }
 
   function selectUtility(id, el){
     const room = roomById(id);
-    if(!room || room.hp <= 0){
+    if(!room || !isUtilityRoom(room)) return;
+    if(room.hp <= 0){
       clearUtilitySelection();
       tooltip(el, 'Disabled');
       refresh();
       return;
     }
-    if(utility.used[id]){
+    if(wasUsed(id)){
       clearUtilitySelection();
       tooltip(el, 'Used this turn');
       refresh();
       return;
     }
-    const targets = eligibleTargets(id);
+    const targets = eligibleTargets(room);
     if(!targets.length){
       clearUtilitySelection();
-      tooltip(el, id === 'p_carp' ? 'Nothing to repair' : 'No guns loading');
+      tooltip(el, room.actionType === 'repair' ? 'Nothing to repair' : 'No guns loading');
       refresh();
       return;
     }
@@ -61,17 +61,18 @@
   function applyUtility(sourceId, targetId){
     const source = roomById(sourceId);
     const target = roomById(targetId);
-    if(!source || !target || utility.used[sourceId]) return false;
-    if(!eligibleTargets(sourceId).some(r => r.id === targetId)) return false;
+    if(!source || !target || wasUsed(sourceId)) return false;
+    if(!eligibleTargets(source).some(r => r.id === targetId)) return false;
 
-    if(sourceId === 'p_carp'){
+    if(source.actionType === 'repair'){
       utility.rollback.push({type:'repair', targetId, hp:target.hp});
-      target.hp = Math.min(target.max, target.hp + 1);
-    } else if(sourceId === 'p_mag'){
+      target.hp = Math.min(target.max, target.hp + (source.repairAmount || 1));
+    } else if(source.actionType === 'quickLoad'){
       if(!window.combatTurn) return false;
       utility.rollback.push({type:'reload', targetId, weaponState:combatTurn.getWeaponState(targetId)});
       combatTurn.setReady(targetId);
       target.loading = false;
+      utility.quickLoaded.add(targetId);
     }
 
     utility.used[sourceId] = true;
@@ -80,7 +81,7 @@
     state.hoverIntent = null;
     refresh();
     const targetEl = getEntityElement('player', targetId);
-    tooltip(targetEl, sourceId === 'p_carp' ? 'Repaired +1' : 'Reloaded');
+    tooltip(targetEl, source.actionType === 'repair' ? 'Repaired +1' : 'Quick Loaded');
     return true;
   }
 
@@ -95,8 +96,9 @@
       }
     }
     utility.rollback = [];
-    utility.used.p_carp = false;
-    utility.used.p_mag = false;
+    utility.used = {};
+    utility.quickLoaded.clear();
+    utility.quickLoadedFiring.clear();
     utility.selected = null;
   }
 
@@ -106,32 +108,33 @@
       el.classList.remove('utility-selected','utility-target','utility-used','utility-unavailable');
     });
 
-    ['p_carp','p_mag'].forEach(id => {
-      const room = roomById(id);
-      const el = getEntityElement('player', id);
-      if(!room || !el) return;
-      if(utility.used[id]){
+    playerRooms.filter(isUtilityRoom).forEach(room => {
+      const el = getEntityElement('player', room.id);
+      if(!el) return;
+      if(wasUsed(room.id)){
         el.classList.add('utility-used');
         const badge = document.createElement('div');
         badge.className = 'utility-used-badge';
         badge.innerHTML = '<span class="tick">✓</span> USED';
         el.appendChild(badge);
-      } else if(room.hp <= 0 || !eligibleTargets(id).length){
+      } else if(room.hp <= 0 || !eligibleTargets(room).length){
         el.classList.add('utility-unavailable');
       }
     });
 
     if(utility.selected){
+      const source = roomById(utility.selected);
+      if(!source) return;
       const sourceEl = getEntityElement('player', utility.selected);
       if(sourceEl) sourceEl.classList.add('utility-selected');
-      eligibleTargets(utility.selected).forEach(target => {
+      eligibleTargets(source).forEach(target => {
         const el = getEntityElement('player', target.id);
         if(el) el.classList.add('utility-target');
       });
-      weaponInfo.textContent = utility.selected === 'p_carp' ? 'Carpenter' : 'Magazine';
-      targetInfo.textContent = utility.selected === 'p_carp'
+      weaponInfo.textContent = source.actionType === 'repair' ? 'Carpenter' : 'Magazine — Quick Load';
+      targetInfo.textContent = source.actionType === 'repair'
         ? 'Select one damaged friendly room to repair 1 pip.'
-        : 'Select one loading friendly gun to reload immediately.';
+        : 'Select one loading friendly gun to Quick Load immediately.';
     }
   }
 
@@ -142,7 +145,7 @@
   };
 
   // Utility rooms and their friendly targets own clicks while selected. Invalid clicks
-  // cancel the temporary state rather than falling through into another room action.
+  // cancel the temporary state. A destroyed room explicitly reads as beyond repair.
   stage.addEventListener('click', e => {
     if(resolving() || state.exterior) return;
     const roomEl = e.target.closest && e.target.closest('.room[data-side="player"]');
@@ -151,6 +154,14 @@
     if(utility.selected){
       e.preventDefault();
       e.stopImmediatePropagation();
+      const source = roomById(utility.selected);
+      const target = id ? roomById(id) : null;
+      if(source?.actionType === 'repair' && target && target.hp <= 0){
+        utility.selected = null;
+        refresh();
+        tooltip(roomEl, 'Beyond repair');
+        return;
+      }
       const selected = utility.selected;
       if(id && applyUtility(selected, id)) return;
       utility.selected = null;
@@ -158,14 +169,14 @@
       return;
     }
 
-    if(id && utilityRoom(id)){
+    const room = id ? roomById(id) : null;
+    if(room && isUtilityRoom(room)){
       e.preventDefault();
       e.stopImmediatePropagation();
       selectUtility(id, roomEl);
     }
   }, true);
 
-  // Clicking elsewhere in the combat panel cancels a utility selection.
   document.addEventListener('click', e => {
     if(!utility.selected || resolving()) return;
     if(stage.contains(e.target)) return;
@@ -176,9 +187,20 @@
   moveAft.addEventListener('click', () => { if(utility.selected){ utility.selected=null; refresh(); } });
   moveFore.addEventListener('click', () => { if(utility.selected){ utility.selected=null; refresh(); } });
 
+  // Snapshot Quick-Loaded weapons that are actually planned to fire before the async
+  // resolver clears player intents. mousedown occurs before the resolver's click handler.
+  const endTurnButton = stage.querySelector('.v3-end-turn');
+  if(endTurnButton){
+    endTurnButton.addEventListener('mousedown', () => {
+      utility.quickLoadedFiring = new Set(
+        [...utility.quickLoaded].filter(id => !!state.playerIntents[id])
+      );
+    }, true);
+  }
+
   // Range safety: an intent is only valid if its fixed world-space aim falls inside
-  // the source weapon's real arc. This specifically prevents a Repeater (arc 1)
-  // from being re-aimed at a world column more than one column away on a new turn.
+  // the source weapon's real range. This prevents a Repeater (range 1), or any future
+  // weapon, from being re-aimed beyond its catalogue value.
   const baseEnemyIntentDistribution = enemyIntentDistribution;
   enemyIntentDistribution = function(playerState = playerIntentDistribution()){
     const saved = enemyIntents.slice();
@@ -196,6 +218,11 @@
   }
 
   function retargetEnemyIntentsInRange(){
+    // Remove any legacy / setup-specific intent whose source does not exist in this ship.
+    for(let i=enemyIntents.length-1;i>=0;i--){
+      if(!sourceEntity('enemy',enemyIntents[i].sourceId)) enemyIntents.splice(i,1);
+    }
+
     enemyIntents.forEach(intent => {
       const source = sourceEntity('enemy', intent.sourceId);
       if(!source || !source.weapon || source.hp <= 0){ intent.inactive = true; return; }
@@ -231,17 +258,32 @@
     });
   }
 
-  // Reset one-use room actions when a new turn begins. Their effects are committed
-  // once End Turn resolves, so only R rolls them back during the planning phase.
+  // Reset one-use room actions when a new turn begins. Quick Load only makes a gun
+  // ready now; if that gun fires, firing restarts its normal reload cadence.
   const observer = new MutationObserver(() => {
     const now = document.body.classList.contains('v3-resolving');
     if(!utility.wasResolving && now){
       utility.selected = null;
     }
     if(utility.wasResolving && !now){
-      utility.used.p_carp = false;
-      utility.used.p_mag = false;
+      if(window.combatTurn){
+        utility.quickLoadedFiring.forEach(id => {
+          const room = roomById(id);
+          const cadence = room?.weapon ? weapons[room.weapon]?.cadence : null;
+          if(!room || !cadence) return;
+          // Single-shot weapons must now spend their normal reload turn. This also
+          // overrides the old prototype's turn-one Heavy special case.
+          if((cadence.shotsBeforeReload || 1) === 1){
+            combatTurn.setWeaponState(id,{mode:'loading',remaining:cadence.reloadTurns || 1});
+          }
+        });
+      }
+
+      state.turnStartMast = state.playerMastTrack;
+      utility.used = {};
       utility.rollback = [];
+      utility.quickLoaded.clear();
+      utility.quickLoadedFiring.clear();
       utility.selected = null;
       retargetEnemyIntentsInRange();
       refresh();
@@ -250,7 +292,6 @@
   });
   observer.observe(document.body, {attributes:true, attributeFilter:['class']});
 
-  // R restores planning-phase Carpenter/Magazine effects as well as movement/intents.
   window.addEventListener('keydown', e => {
     if(e.code === 'KeyR' && !e.repeat && !resolving()){
       rollbackUtilityEffects();
@@ -259,6 +300,12 @@
       utility.selected = null;
     }
   }, true);
+
+  window.combatUtility = {
+    eligibleTargets,
+    isUsed:id=>wasUsed(id),
+    isAvailable(room){ return isUtilityRoom(room) && room.hp>0 && !wasUsed(room.id) && eligibleTargets(room).length>0; }
+  };
 
   retargetEnemyIntentsInRange();
   refresh();
