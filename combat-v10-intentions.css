@@ -1,0 +1,133 @@
+/* v10: Into-the-Breach-style enemy intention reveal + planning clarity */
+:root{
+  --roomW:156px;
+  --roomH:132px;
+  --trackW:156px;
+}
+.app{max-width:1480px}
+.room{padding:36px 13px 9px}
+.room-title{font-size:12px;line-height:1.05;padding-right:0!important}
+.room-sub{font-size:11px;min-height:15px}
+.room .pips{left:13px;bottom:10px}
+.room-capacity{right:12px;bottom:11px}
+.intent-stack{right:10px;top:50px}
+.track-row{height:36px}
+.track-chevrons .move-btn{width:36px;height:36px}
+
+/* Use the top rail of player rooms for action state, so READY/USED never covers the room name. */
+.room[data-side="player"].action-ready::after,
+.room[data-side="player"].action-used::after{
+  top:8px!important;
+  left:10px!important;
+  right:auto!important;
+  min-width:62px!important;
+  padding:4px 7px!important;
+}
+.room[data-side="player"].action-ready>.room-title,
+.room[data-side="player"].action-ready .weapon-heading,
+.room[data-side="player"].action-used>.room-title,
+.room[data-side="player"].action-used .weapon-heading{padding-right:0!important}
+.utility-used-badge{top:8px!important;left:10px!important;right:auto!important;padding:4px 7px!important;font-size:9px!important}
+.loading-v4{top:8px!important;right:8px!important}
+.destroyed-gun-badge{top:8px!important;right:8px!important}
+
+/* Threats are information, not damage already taken: red hatching only, no solid fill. */
+.room.enemy-intended,.mast-box.enemy-intended{
+  background:repeating-linear-gradient(-45deg,rgba(194,66,58,.24),rgba(194,66,58,.24) 5px,transparent 5px,transparent 13px)!important;
+}
+.room.enemy-intended[data-threat-count="2"],.mast-box.enemy-intended[data-threat-count="2"]{
+  background:repeating-linear-gradient(-45deg,rgba(194,66,58,.32),rgba(194,66,58,.32) 5px,transparent 5px,transparent 9px)!important;
+}
+.room.enemy-intended[data-threat-count="3"],.mast-box.enemy-intended[data-threat-count="3"]{
+  background:repeating-linear-gradient(-45deg,rgba(194,66,58,.40),rgba(194,66,58,.40) 5px,transparent 5px,transparent 7px)!important;
+}
+/* If a room both dodged one shot and remains threatened by another, preserve both stories. */
+.room.enemy-intended.dodged,.mast-box.enemy-intended.dodged{
+  background:
+    repeating-linear-gradient(45deg,rgba(72,132,185,.28),rgba(72,132,185,.28) 5px,transparent 5px,transparent 12px),
+    repeating-linear-gradient(-45deg,rgba(194,66,58,.28),rgba(194,66,58,.28) 5px,transparent 5px,transparent 11px)!important;
+}
+.room.enemy-intended.dodged[data-threat-count="2"],.mast-box.enemy-intended.dodged[data-threat-count="2"]{
+  background:
+    repeating-linear-gradient(45deg,rgba(72,132,185,.28),rgba(72,132,185,.28) 5px,transparent 5px,transparent 12px),
+    repeating-linear-gradient(-45deg,rgba(194,66,58,.36),rgba(194,66,58,.36) 5px,transparent 5px,transparent 8px)!important;
+}
+.room.enemy-intended.dodged[data-threat-count="3"],.mast-box.enemy-intended.dodged[data-threat-count="3"]{
+  background:
+    repeating-linear-gradient(45deg,rgba(72,132,185,.28),rgba(72,132,185,.28) 5px,transparent 5px,transparent 12px),
+    repeating-linear-gradient(-45deg,rgba(194,66,58,.43),rgba(194,66,58,.43) 5px,transparent 5px,transparent 6px)!important;
+}
+
+/* Z/X now identify the rooms actually firing and the rooms spending the turn reloading. */
+.v10-overview-fire-enemy{box-shadow:inset 0 0 0 4px rgba(190,67,59,.92)!important}
+.v10-overview-fire-player{box-shadow:inset 0 0 0 4px rgba(56,112,151,.92)!important}
+.v10-overview-reload-enemy{outline:3px dashed rgba(190,67,59,.72)!important;outline-offset:-5px}
+.v10-overview-reload-player{outline:3px dashed rgba(56,112,151,.78)!important;outline-offset:-5px}
+.v10-overview-cancelled{outline:3px dashed rgba(87,98,99,.72)!important;outline-offset:-5px;filter:grayscale(.45)}
+
+/* Current movement position is always legible, even when other cells are unavailable. */
+.track-cell.track-current{
+  opacity:1!important;
+  filter:none!important;
+  background:rgba(74,128,165,.13)!important;
+  box-shadow:inset 0 0 0 2px rgba(57,103,137,.48);
+}
+
+/* Enemy utility intentions are green. These are data-driven and can be used by later AI. */
+.v10-enemy-action-chip{
+  position:absolute;left:8px;top:48px;z-index:25;
+  padding:3px 5px;border:1px solid rgba(53,128,88,.62);border-radius:3px;
+  background:rgba(224,244,226,.96);color:#287347;
+  font:800 8px/1 Arial,sans-serif;letter-spacing:.04em;pointer-events:none;
+}
+.v10-enemy-action-chip.repair{color:#2f7a48}
+.v10-enemy-action-chip.cancelled{filter:grayscale(.8);opacity:.55;text-decoration:line-through}
+
+/* Intention reveal presentation. */
+.v10-intent-preview{
+  display:none;position:absolute;inset:0;z-index:96;
+  align-items:center;justify-content:center;pointer-events:auto;
+  background:rgba(16,35,38,.12);
+}
+.v10-intent-preview.visible{display:flex}
+.v10-intent-card{
+  position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);
+  min-width:330px;padding:18px 28px 17px;
+  border:2px solid rgba(42,58,61,.72);background:rgba(241,234,216,.97);
+  box-shadow:0 12px 32px rgba(0,0,0,.18);text-align:center;
+  transition:transform .18s ease,background .18s ease;
+}
+.v10-intent-turn{font:800 10px/1 Arial,sans-serif;letter-spacing:.16em;color:#647174;margin-bottom:6px}
+.v10-intent-title{font:800 23px/1 Georgia,serif;letter-spacing:.09em;color:#9e463f}
+.v10-intent-detail{margin-top:9px;min-height:16px;font:700 12px/1.2 Arial,sans-serif;color:#46595b;letter-spacing:.03em}
+.v10-intent-preview.handoff .v10-intent-card{background:rgba(231,241,245,.98);transform:translate(-50%,-50%) scale(1.035)}
+.v10-intent-preview.handoff .v10-intent-title{color:#356d91;font-size:27px}
+.v10-intent-preview.handoff .v10-intent-detail{color:#4b6f82}
+body.v10-intent-preview-active .room,
+body.v10-intent-preview-active .mast-box,
+body.v10-intent-preview-active .move-btn,
+body.v10-intent-preview-active .v3-end-turn{pointer-events:none!important}
+
+.v10-intent-tracer-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:94;pointer-events:none;overflow:visible}
+.v10-intent-tracer{
+  stroke:rgba(190,67,59,.9);stroke-width:3;fill:none;vector-effect:non-scaling-stroke;
+  stroke-dasharray:1;stroke-dashoffset:1;animation:v10Trace .38s ease forwards;
+}
+.v10-intent-tracer.miss{stroke:rgba(86,98,100,.78);stroke-dasharray:.12 .08}
+@keyframes v10Trace{to{stroke-dashoffset:0}}
+.v10-preview-source{animation:v10SourcePulse .4s ease}
+.v10-preview-target-flash{animation:v10TargetPulse .52s ease}
+.v10-preview-loading{animation:v10LoadingPulse .52s ease}
+.v10-preview-disabled{animation:v10DisabledPulse .52s ease}
+.v10-preview-green{animation:v10GreenPulse .62s ease}
+@keyframes v10SourcePulse{0%,100%{box-shadow:none}50%{box-shadow:inset 0 0 0 5px rgba(190,67,59,.92)}}
+@keyframes v10TargetPulse{0%,100%{filter:none}45%{filter:brightness(1.12);box-shadow:inset 0 0 0 4px rgba(190,67,59,.8)}}
+@keyframes v10LoadingPulse{0%,100%{box-shadow:none}50%{box-shadow:inset 0 0 0 4px rgba(93,104,105,.7)}}
+@keyframes v10DisabledPulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes v10GreenPulse{0%,100%{box-shadow:none}50%{box-shadow:inset 0 0 0 4px rgba(50,132,82,.78)}}
+
+@media(max-width:1180px){
+  :root{--roomW:132px;--roomH:114px;--trackW:132px}
+  .app{max-width:1240px}
+  .room{padding-top:34px}
+}
