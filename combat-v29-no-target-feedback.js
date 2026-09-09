@@ -1,6 +1,6 @@
 (() => {
   const detail=document.querySelector('.v11-intent-detail');
-  if(!detail||!window.enemyRooms)return;
+  if(!detail||typeof enemyRooms==='undefined')return;
 
   function activeIntent(room){return enemyIntents.find(i=>i.sourceId===room.id&&!i.inactive)||null;}
   function ready(room){return !!(room?.weapon&&room.hp>0&&window.combatTurn?.isReady?.(room.id));}
