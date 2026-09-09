@@ -100,11 +100,10 @@
       const existing = byCell.get(`${row}:${col}`);
       const room = existing ? {...existing} : {type:'storage',name:'HOLD',hp:2};
       room.row=row;room.col=col;room.hp=Math.max(1,Number(room.hp)||1);
-      room.id=roomId(side,row,col);
+      room.id=existing?.id||roomId(side,row,col);
       room.name=actualName(room);room.hidden=false;delete room.revealName;
       setup.rooms.push(room);
     }
-    delete setup.openingIntents;
     return setup;
   }
 
@@ -251,18 +250,27 @@
   }
 
   function setupForCombat(setup,side){
-    const out=clone(setup);out.id=`__dev_${side}`;out.rows=2;out.name=(out.name||'UNTITLED SHIP').trim().toUpperCase();delete out.openingIntents;
+    const out=clone(setup);out.id=`__dev_${side}`;out.rows=2;out.name=(out.name||'UNTITLED SHIP').trim().toUpperCase();
+    const idMap={};
     out.rooms.forEach((room,index)=>{
-      const real=actualName(room);room.id=`${side==='player'?'p':'e'}_dev_r${room.row}c${room.col}_${index}`;
-      room.hp=Math.max(1,Number(room.hp)||1);
+      const oldId=room.id,real=actualName(room),newId=`${side==='player'?'p':'e'}_dev_r${room.row}c${room.col}_${index}`;
+      idMap[oldId]=newId;room.id=newId;room.hp=Math.max(1,Number(room.hp)||1);
       if(side==='enemy'&&!room.weapon){room.revealName=real;room.name='???';room.hidden=true;}else{room.name=real;room.hidden=false;delete room.revealName;}
     });
-    return out;
+    delete out.openingIntents;
+    return {setup:out,idMap};
   }
 
   function startCombat(){
+    const p=setupForCombat(state.player,'player'),e=setupForCombat(state.enemy,'enemy');
+    const inherited=Array.isArray(state.enemy.openingIntents)?state.enemy.openingIntents:[];
+    e.setup.openingIntents=inherited.map(intent=>({
+      ...intent,
+      sourceId:e.idMap[intent.sourceId],
+      targetId:intent.targetId==='p_mast'?'p_mast':p.idMap[intent.targetId]
+    })).filter(intent=>intent.sourceId&&intent.targetId);
     const match={
-      player:setupForCombat(state.player,'player'),enemy:setupForCombat(state.enemy,'enemy'),
+      player:p.setup,enemy:e.setup,
       sourcePlayer:state.sourcePlayer,sourceEnemy:state.sourceEnemy,savedAt:Date.now()
     };
     localStorage.setItem(MATCH_KEY,JSON.stringify(match));
