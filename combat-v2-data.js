@@ -36,7 +36,7 @@ const enemyMast = {id:'e_mast', name:'Mast', kind:'mast', col:ENEMY_MAST_TRACK, 
 const playerRooms = [
   {id:'p_std', name:'STANDARD', sub:'Gun Deck', row:0, col:0, hp:3, max:3, weapon:'standard', capacity:'2 loaded'},
   {id:'p_mag', name:'MAGAZINE', sub:'', row:0, col:1, hp:2, max:2, capacity:'6 / 6'},
-  {id:'p_heavy', name:'HEAVY', sub:'Gun Deck', row:0, col:2, hp:3, max:3, weapon:'heavy', capacity:'Loading', loading:true},
+  {id:'p_heavy', name:'HEAVY', sub:'Gun Deck', row:0, col:2, hp:3, max:3, weapon:'heavy', loading:true},
   {id:'p_hold1', name:'GENERAL HOLD', sub:'', row:1, col:0, hp:2, max:2, capacity:'2 / 3'},
   {id:'p_carp', name:'CARPENTER', sub:'', row:1, col:1, hp:2, max:2, capacity:'Timber 4/4'},
   {id:'p_hold2', name:'GENERAL HOLD', sub:'', row:1, col:2, hp:2, max:2, capacity:'1 / 3'}
