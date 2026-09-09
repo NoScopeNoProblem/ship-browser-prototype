@@ -60,6 +60,7 @@
     roomLibrary: document.getElementById('roomLibrary'),
     save: document.getElementById('saveShip'),
     saveAs: document.getElementById('saveAsShip'),
+    deleteShip: document.getElementById('deleteShip'),
     stopEditing: document.getElementById('stopEditing'),
     start: document.getElementById('startCombat')
   };
@@ -194,7 +195,8 @@
     els.selectedRoomLabel.textContent=room?`${actualName(room)} · row ${room.row+1}, column ${room.col+1}`:'Select a room in the ship preview';
     els.roomHp.textContent=room?room.hp:'—';els.roomHpDown.disabled=!room;els.roomHpUp.disabled=!room;
     els.roomLibrary.querySelectorAll('button[data-room-key]').forEach(btn=>btn.disabled=!room);
-    els.save.textContent=state.editingSavedId?'SAVE':'SAVE';
+    els.save.textContent='SAVE';
+    if(els.deleteShip)els.deleteShip.hidden=!state.editingSavedId;
   }
 
   function renderLibrary(){
@@ -249,6 +251,43 @@
     state.editingSavedId=id;renderAll();
   }
 
+  function deleteSavedShip(){
+    const id=state.editingSavedId;
+    if(!id)return;
+    const all=customShips();
+    const saved=all[id];
+    if(!saved)return;
+    const name=(saved.name||'THIS SAVED SHIP').trim();
+    if(!window.confirm(`Delete ${name}?\n\nThis permanently removes the saved custom ship template.`))return;
+
+    delete all[id];
+    setCustomShips(all);
+
+    const playerWasDeleted=state.sourcePlayer===id;
+    const enemyWasDeleted=state.sourceEnemy===id;
+    if(playerWasDeleted){
+      state.sourcePlayer='wayward';
+      state.player=normalizeDraft(catalog.shipSetups.wayward,'player');
+    }
+    if(enemyWasDeleted){
+      state.sourceEnemy='blackAlbatross';
+      state.enemy=normalizeDraft(catalog.shipSetups.blackAlbatross,'enemy');
+    }
+
+    const last=readJSON(MATCH_KEY,null);
+    if(last){
+      let changed=false;
+      if(last.sourcePlayer===id){last.sourcePlayer='wayward';last.player=clone(catalog.shipSetups.wayward);changed=true;}
+      if(last.sourceEnemy===id){last.sourceEnemy='blackAlbatross';last.enemy=clone(catalog.shipSetups.blackAlbatross);changed=true;}
+      if(changed)localStorage.setItem(MATCH_KEY,JSON.stringify(last));
+    }
+
+    state.editingSide=null;
+    state.selectedRoomId=null;
+    state.editingSavedId=null;
+    renderAll();
+  }
+
   function setupForCombat(setup,side){
     const out=clone(setup);out.id=`__dev_${side}`;out.rows=2;out.name=(out.name||'UNTITLED SHIP').trim().toUpperCase();
     const idMap={};
@@ -288,6 +327,8 @@
   els.mastHpDown.addEventListener('click',()=>changeNumber('mast',-1));els.mastHpUp.addEventListener('click',()=>changeNumber('mast',1));
   els.roomHpDown.addEventListener('click',()=>changeNumber('room',-1));els.roomHpUp.addEventListener('click',()=>changeNumber('room',1));
   els.mastColumn.addEventListener('change',()=>{const s=edited();if(s){s.mastColumn=Number(els.mastColumn.value);renderAll();}});
-  els.save.addEventListener('click',()=>save(false));els.saveAs.addEventListener('click',()=>save(true));els.start.addEventListener('click',startCombat);
+  els.save.addEventListener('click',()=>save(false));els.saveAs.addEventListener('click',()=>save(true));
+  if(els.deleteShip)els.deleteShip.addEventListener('click',deleteSavedShip);
+  els.start.addEventListener('click',startCombat);
   renderAll();
 })();
