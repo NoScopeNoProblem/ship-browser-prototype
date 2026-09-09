@@ -20,7 +20,7 @@ const SHIP_SETUPS = {
   wayward: {
     id:'wayward', name:'THE WAYWARD', columns:3, rows:2, mastColumn:1, mastHp:3,
     rooms:[
-      {id:'p_std', type:'gun', name:'STANDARD', sub:'Gun Deck', row:0, col:0, hp:3, weapon:'standard', capacity:'2 loaded'},
+      {id:'p_std', type:'gun', name:'STANDARD', sub:'Gun Deck', row:0, col:0, hp:3, weapon:'standard'},
       {id:'p_mag', type:'magazine', name:'MAGAZINE', row:0, col:1, hp:2, capacity:'6 / 6'},
       {id:'p_heavy', type:'gun', name:'HEAVY', sub:'Gun Deck', row:0, col:2, hp:3, weapon:'heavy'},
       {id:'p_hold1', type:'storage', name:'HOLD', row:1, col:0, hp:2, capacity:'2 / 3'},
