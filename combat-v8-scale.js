@@ -1,6 +1,4 @@
 (() => {
-  if(state.movedThisTurn===undefined) state.movedThisTurn=false;
-
   function validateShipSetup(setup, side='ship'){
     const errors=[];
     if(!setup) return [`${side}: missing setup`];
@@ -53,22 +51,47 @@
     trackRow.style.top=`${trackTop}px`;
     const chevrons=stage.querySelector('.track-chevrons');
     if(chevrons) chevrons.style.top=`${trackTop-2}px`;
+    const endTurn=stage.querySelector('.v3-end-turn');
+    if(endTurn) endTurn.style.top=`${trackTop+44}px`;
+    const turnNumber=stage.querySelector('.v9-turn-number');
+    if(turnNumber) turnNumber.style.top=`${trackTop+88}px`;
     stage.style.minHeight=`${minHeight}px`;
   }
 
+  function hasCommittedPlayerAction(){
+    if(Object.keys(state.playerIntents||{}).length) return true;
+    if(window.combatUtility){
+      return playerRooms.some(room =>
+        (room.actionType==='repair'||room.actionType==='quickLoad') && combatUtility.isUsed(room.id)
+      );
+    }
+    return false;
+  }
+
+  function turnMovementBounds(){
+    const start=state.turnStartMast ?? window.combatTurn?.startMast ?? state.playerMastTrack;
+    return {
+      min:Math.max(PLAYER_MAST_MIN,start-1),
+      max:Math.min(PLAYER_MAST_MAX,start+1)
+    };
+  }
+
   function updateMovementButtons(){
-    const blocked=playerMast.hp<=0||state.movedThisTurn;
-    moveAft.disabled=blocked||state.playerMastTrack<=PLAYER_MAST_MIN;
-    moveFore.disabled=blocked||state.playerMastTrack>=PLAYER_MAST_MAX;
+    const bounds=turnMovementBounds();
+    const blocked=playerMast.hp<=0||hasCommittedPlayerAction();
+    moveAft.disabled=blocked||state.playerMastTrack<=bounds.min;
+    moveFore.disabled=blocked||state.playerMastTrack>=bounds.max;
   }
 
   function movementPermission(direction){
     if(playerMast.hp<=0) return {ok:false,message:'Mast destroyed'};
-    if(state.movedThisTurn) return {ok:false,message:'Movement used'};
+    if(hasCommittedPlayerAction()) return {ok:false,message:'Action committed'};
     const target=state.playerMastTrack+direction;
-    if(target<PLAYER_MAST_MIN||target>PLAYER_MAST_MAX) return {ok:false,message:null};
+    const bounds=turnMovementBounds();
+    if(target<bounds.min||target>bounds.max) return {ok:false,message:null};
     return {ok:true,message:null};
   }
+
   const previousMoveLeft=moveLeft;
   const previousMoveRight=moveRight;
   moveLeft=function(){
@@ -78,9 +101,7 @@
       refresh();
       return;
     }
-    const before=state.playerMastTrack;
     previousMoveLeft();
-    if(state.playerMastTrack!==before) state.movedThisTurn=true;
     refresh();
   };
   moveRight=function(){
@@ -90,9 +111,7 @@
       refresh();
       return;
     }
-    const before=state.playerMastTrack;
     previousMoveRight();
-    if(state.playerMastTrack!==before) state.movedThisTurn=true;
     refresh();
   };
 
@@ -100,9 +119,8 @@
     return target.kind==='mast' ? state.playerMastTrack : playerWorldCol(target.col);
   }
 
-  // A generated enemy setup does not need hand-authored target ids to function. Existing
-  // authored intents are preserved; missing gun intents are filled deterministically from
-  // currently living, in-range targets. Chain weapons prefer a mast when one is available.
+  // Generated enemy setups do not need every target hand-authored. Missing gun intents
+  // are filled deterministically from living, in-range targets; chain weapons prefer a mast.
   function ensureEnemyIntentCoverage(){
     enemyRooms.filter(r=>r.weapon&&r.hp>0).forEach(source=>{
       if(enemyIntents.some(i=>i.sourceId===source.id)) return;
@@ -125,14 +143,13 @@
         })[0];
       }
 
-      const intent={
+      enemyIntents.push({
         sourceId:source.id,
         damage:weapons[source.weapon].damage,
         logicalTargetId:target.id,
         lane:target.kind==='mast'?'mast':target.row,
         targetWorld:worldForFriendlyTarget(target)
-      };
-      enemyIntents.push(intent);
+      });
     });
   }
 
@@ -165,6 +182,8 @@
     cloneSetup,
     weaponSummary,
     ensureEnemyIntentCoverage,
+    hasCommittedPlayerAction,
+    turnMovementBounds,
     listShipSetups:()=>Object.keys(SHIP_SETUPS),
     current:{player:PLAYER_SHIP_SETUP,enemy:ENEMY_SHIP_SETUP,setup:COMBAT_SETUP}
   };
@@ -180,7 +199,6 @@
   const turnObserver=new MutationObserver(()=>{
     const now=document.body.classList.contains('v3-resolving');
     if(wasResolving&&!now){
-      state.movedThisTurn=false;
       state.turnStartMast=state.playerMastTrack;
       ensureEnemyIntentCoverage();
       refresh();
@@ -188,13 +206,6 @@
     wasResolving=now;
   });
   turnObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
-
-  window.addEventListener('keydown',e=>{
-    if(e.code==='KeyR'&&!e.repeat){
-      state.movedThisTurn=false;
-      setTimeout(refresh,0);
-    }
-  },true);
 
   window.addEventListener('resize',applyScalableLayout);
   refresh();
