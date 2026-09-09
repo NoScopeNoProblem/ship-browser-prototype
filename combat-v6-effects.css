@@ -1,0 +1,13 @@
+/* Combat v6: magazine collateral, reveals, destroyed gun state */
+
+/* The retired large loading UI must never render, even from a stale cached base stylesheet. */
+.loading-badge,.loading-v3{display:none!important}
+
+.explosion-hit{color:#b85f20;font-weight:900;font-size:18px;line-height:1;text-shadow:0 0 2px rgba(184,95,32,.18)}
+.actual-explosion-icon{position:absolute;left:9px;bottom:4px;z-index:28;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#f7e2c8;border:1px solid rgba(176,88,25,.68);color:#b45c1f;font:900 22px/1 Arial,sans-serif;pointer-events:none;animation:v6explode .65s ease forwards}
+@keyframes v6explode{0%{opacity:0;transform:scale(.55)}22%,65%{opacity:1;transform:scale(1.14)}100%{opacity:0;transform:scale(1.35)}}
+
+.destroyed-gun{filter:grayscale(.82);background:repeating-linear-gradient(-45deg,rgba(61,70,71,.13),rgba(61,70,71,.13) 6px,rgba(235,226,207,.38) 6px,rgba(235,226,207,.38) 12px)!important;color:rgba(31,47,49,.64)}
+.destroyed-gun .weapon-icon,.destroyed-gun .room-sub,.destroyed-gun .room-capacity{opacity:.5}
+.destroyed-gun-badge{position:absolute;right:5px;top:5px;z-index:25;height:19px;padding:1px 4px;border:1px solid rgba(65,71,72,.68);background:rgba(220,216,206,.96);display:flex;align-items:center;gap:3px;border-radius:2px;color:#596264;font:800 8px/1 Arial,sans-serif;letter-spacing:.035em;pointer-events:none}
+.destroyed-gun-badge span{font-size:11px;color:#7a4540}.destroyed-gun-badge b{font:inherit}
