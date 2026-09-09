@@ -105,10 +105,9 @@ const SHIP_SETUPS = {
   },
 
   // ★★ durability/support test: three credible guns backed by both Magazine and Carpenter.
-  // More armour than the Wayward mirror, but materially less simultaneous pressure than Iron Gull.
   copperKestrel: {
     id:'copperKestrel', name:'THE COPPER KESTREL', threatStars:2,
-    testExpectation:'Upper-end ★★. Starter Wayward should still be favoured, but a clean no-damage win should require good target priority and use of movement.',
+    testExpectation:'Calibrated at ★★. A strong player can still finish cleanly by identifying the Magazine and using repair well, but the fight creates meaningful pressure.',
     columns:4, rows:2, mastColumn:1, mastHp:3,
     rooms:[
       {id:'e_ck_std', type:'gun', name:'STANDARD', sub:'Gun Deck', row:0, col:0, hp:3, weapon:'standard'},
@@ -146,6 +145,30 @@ const SHIP_SETUPS = {
       {sourceId:'e_rep', targetId:'p_mag'},
       {sourceId:'e_long', targetId:'p_carp'}
     ]
+  },
+
+  // ★★★ attrition/support test: four durable guns, two Carpenters and two Magazines.
+  // The support rooms deliberately repeat, and HP mixes 2/3/4 so target priority is less obvious.
+  blackAlbatross: {
+    id:'blackAlbatross', name:'THE BLACK ALBATROSS', threatStars:3,
+    testExpectation:'Hard ★★★. The starter Wayward should be able to win, but sustained support and 4-blip gun rooms should make a flawless victory difficult even with strong play.',
+    columns:4, rows:2, mastColumn:1, mastHp:4,
+    rooms:[
+      {id:'e_ba_std', type:'gun', name:'STANDARD', sub:'Gun Deck', row:0, col:0, hp:3, weapon:'standard'},
+      {id:'e_ba_heavy', type:'gun', name:'HEAVY', sub:'Gun Deck', row:0, col:1, hp:4, weapon:'heavy'},
+      {id:'e_ba_rep', type:'gun', name:'REPEATER', sub:'Gun Deck', row:0, col:2, hp:4, weapon:'repeater'},
+      {id:'e_ba_long', type:'gun', name:'LONG GUN', sub:'Gun Deck', row:0, col:3, hp:3, weapon:'long'},
+      {id:'e_ba_carp_a', type:'carpenter', name:'???', revealName:'CARPENTER', hidden:true, row:1, col:0, hp:4},
+      {id:'e_ba_mag_a', type:'magazine', name:'???', revealName:'MAGAZINE', hidden:true, row:1, col:1, hp:3},
+      {id:'e_ba_carp_b', type:'carpenter', name:'???', revealName:'CARPENTER', hidden:true, row:1, col:2, hp:2},
+      {id:'e_ba_mag_b', type:'magazine', name:'???', revealName:'MAGAZINE', hidden:true, row:1, col:3, hp:3}
+    ],
+    openingIntents:[
+      {sourceId:'e_ba_std', targetId:'p_carp'},
+      {sourceId:'e_ba_heavy', targetId:'p_mag'},
+      {sourceId:'e_ba_rep', targetId:'p_std'},
+      {sourceId:'e_ba_long', targetId:'p_heavy'}
+    ]
   }
 };
 
@@ -156,7 +179,7 @@ const COMBAT_PARAMS = new URLSearchParams(window.location.search);
 const REQUESTED_PLAYER = COMBAT_PARAMS.get('player');
 const REQUESTED_ENEMY = COMBAT_PARAMS.get('enemy');
 const ACTIVE_PLAYER_ID = REQUESTED_PLAYER && SHIP_SETUPS[REQUESTED_PLAYER] ? REQUESTED_PLAYER : 'wayward';
-const ACTIVE_ENEMY_ID = REQUESTED_ENEMY && SHIP_SETUPS[REQUESTED_ENEMY] ? REQUESTED_ENEMY : 'copperKestrel';
+const ACTIVE_ENEMY_ID = REQUESTED_ENEMY && SHIP_SETUPS[REQUESTED_ENEMY] ? REQUESTED_ENEMY : 'blackAlbatross';
 const COMBAT_SETUP = {trackColumns:7, playerShip:ACTIVE_PLAYER_ID, enemyShip:ACTIVE_ENEMY_ID, playerMastTrack:3, enemyMastTrack:3};
 const weapons = WEAPON_ARCHETYPES;
 const PLAYER_SHIP_SETUP = SHIP_SETUPS[COMBAT_SETUP.playerShip];
