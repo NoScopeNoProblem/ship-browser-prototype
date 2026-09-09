@@ -5,7 +5,7 @@
   const deferredLoadProgress=new Set();
   const playerQuickLoaded=new Map();
   const enemyQuickLoaded=new Map();
-  let actionSerial=0;
+  let actionSerial=0,actionPlanTurn=null;
 
   window.enemyActionIntents=[];
 
@@ -31,6 +31,8 @@
   function stateFor(room){return room?.weapon&&window.combatTurn?.getWeaponState?combatTurn.getWeaponState(room.id):null;}
   function currentlyReady(room){return !!(room&&room.weapon&&room.hp>0&&stateFor(room)?.mode==='ready');}
   function currentActions(){return (window.enemyActionIntents||[]).filter(a=>a.turn===currentTurn());}
+  function actionTargetId(action){return action?.lockedTargetId||action?.targetId||null;}
+  function publicCurrentActions(){return currentActions().map(action=>({...action,targetId:actionTargetId(action)}));}
   function activeEnemyIntent(sourceId){return enemyIntents.find(i=>i.sourceId===sourceId&&!i.inactive)||null;}
   function plannedDamageTo(id){try{return playerIntentDistribution()?.hits?.get(id)||0;}catch{return 0;}}
   function playerActionCommitted(){return window.combatFactory?.hasCommittedPlayerAction?combatFactory.hasCommittedPlayerAction():Object.keys(state.playerIntents||{}).length>0;}
@@ -38,8 +40,13 @@
   function orthogonal(a,b){return !!(a&&b&&a.id!==b.id&&Math.abs(a.col-b.col)+Math.abs(a.row-b.row)===1);}
 
   function buildEnemyActions(){
+    const turn=currentTurn();
+    // Enemy utility choices are intentions, not reactive AI. Once chosen for this turn they
+    // remain immutable through player planning and resolution. A new plan is only built after
+    // combatTurn advances and the next turn opens.
+    if(actionPlanTurn===turn)return currentActions();
     provisionalOriginals.clear(); deferredLoadProgress.clear();
-    const turn=currentTurn(),actions=[];
+    const actions=[];
 
     enemyRooms.filter(r=>r.actionType==='repair'&&r.hp>0).sort((a,b)=>(a.col-b.col)||(a.row-b.row)).forEach(source=>{
       const targets=enemyRooms.filter(r=>r.hp>0&&r.hp<r.max&&adjacent8(source,r)).sort((a,b)=>{
@@ -47,7 +54,7 @@
         const ratio=(a.hp/a.max)-(b.hp/b.max); if(ratio)return ratio;
         return (a.col-b.col)||(a.row-b.row);
       });
-      if(targets[0])actions.push({id:`repair-${turn}-${++actionSerial}`,turn,sourceId:source.id,targetId:targets[0].id,actionType:'repair',sourceWasHiddenAtPlan:!knownRoom(source)});
+      if(targets[0])actions.push({id:`repair-${turn}-${++actionSerial}`,turn,sourceId:source.id,targetId:targets[0].id,lockedTargetId:targets[0].id,actionType:'repair',sourceWasHiddenAtPlan:!knownRoom(source)});
     });
 
     const assigned=new Set();
@@ -58,17 +65,17 @@
       });
       if(targets[0]){
         const target=targets[0],original=stateFor(target); assigned.add(target.id); provisionalOriginals.set(target.id,{...original});
-        actions.push({id:`quick-${turn}-${++actionSerial}`,turn,sourceId:source.id,targetId:target.id,actionType:'quickLoad',sourceWasHiddenAtPlan:!knownRoom(source),provisionalActive:false});
+        actions.push({id:`quick-${turn}-${++actionSerial}`,turn,sourceId:source.id,targetId:target.id,lockedTargetId:target.id,actionType:'quickLoad',sourceWasHiddenAtPlan:!knownRoom(source),provisionalActive:false});
       }
     });
 
-    window.enemyActionIntents=actions; syncProvisionalQuickLoads(); refresh();
+    window.enemyActionIntents=actions;actionPlanTurn=turn;syncProvisionalQuickLoads();refresh();return actions;
   }
 
   function sourcePredictedDestroyed(source){return !!source&&source.hp-plannedDamageTo(source.id)<=0;}
   function targetPredictedDestroyed(target){return !!target&&target.hp-plannedDamageTo(target.id)<=0;}
   function utilityIntentCancelled(action,{actualOnly=false}={}){
-    const source=enemyRoom(action.sourceId),target=enemyRoom(action.targetId);
+    const source=enemyRoom(action.sourceId),target=enemyRoom(actionTargetId(action));
     if(!source||!target||source.hp<=0||target.hp<=0)return true;
     if(actualOnly)return false;
     if(targetPredictedDestroyed(target))return true;
@@ -79,7 +86,7 @@
   function syncProvisionalQuickLoads(){
     if(window.combatTurn?.resolving||window.combatEnded)return;
     currentActions().filter(a=>a.actionType==='quickLoad').forEach(action=>{
-      const target=enemyRoom(action.targetId),original=provisionalOriginals.get(action.targetId); if(!target||!original)return;
+      const targetId=actionTargetId(action),target=enemyRoom(targetId),original=provisionalOriginals.get(targetId); if(!target||!original)return;
       const cancelled=utilityIntentCancelled(action);
       if(cancelled){combatTurn.setWeaponState(target.id,{...original});action.provisionalActive=false;enemyQuickLoaded.delete(target.id);}
       else{combatTurn.setReady(target.id);action.provisionalActive=true;}
@@ -92,7 +99,7 @@
     if(!window.combatTurn?.resolving){
       actions.forEach(action=>{
         if(utilityIntentCancelled(action))return;
-        const target=enemyRoom(action.targetId);if(!target||currentlyReady(target))return;
+        const target=enemyRoom(actionTargetId(action));if(!target||currentlyReady(target))return;
         temporarilyReady.push([target.id,stateFor(target)]);combatTurn.setReady(target.id);
       });
     }
@@ -156,7 +163,7 @@
   function renderEnemyUtilityIntents(){
     document.querySelectorAll('.v11-enemy-action-chip').forEach(n=>n.remove());
     currentActions().forEach((action,index)=>{
-      if(!utilityVisible(action,index))return;const target=enemyRoom(action.targetId),el=target&&getEntityElement('enemy',target.id);if(!el)return;
+      if(!utilityVisible(action,index))return;const target=enemyRoom(actionTargetId(action)),el=target&&getEntityElement('enemy',target.id);if(!el)return;
       const cancelled=utilityIntentCancelled(action),chip=document.createElement('div');chip.className=`v11-enemy-action-chip ${action.actionType}${cancelled?' cancelled':''}`;chip.textContent=action.actionType==='repair'?'♥+':'↻+';chip.title=cancelled?'Cancelled':(action.actionType==='repair'?'Enemy repair':'Enemy Quick Load');el.appendChild(chip);
     });
   }
@@ -189,7 +196,15 @@
   };
 
   function center(el){const sr=stage.getBoundingClientRect(),r=el.getBoundingClientRect();return{x:r.left-sr.left+r.width/2,y:r.top-sr.top+r.height/2};}
-  function endpoint(intent,impact){if(impact){const el=getEntityElement('player',impact.id);if(el)return center(el);}if(intent.lane==='mast')return center(playerMastBox);const pg=playerGrid.getBoundingClientRect(),sg=stage.getBoundingClientRect(),rows=Math.max(1,PLAYER_SHIP_SETUP.rows||1);return{x:worldColX(intent.targetWorld)+ROOM_W()/2,y:pg.top-sg.top+(Number(intent.lane)+.5)*(pg.height/rows)};}
+  function endpoint(intent,impact){
+    if(impact){const el=getEntityElement('player',impact.id);if(el)return center(el);}
+    if(intent.lane==='mast'){
+      const mast=center(playerMastBox);
+      return{x:worldColX(intent.targetWorld)+ROOM_W()/2,y:mast.y};
+    }
+    const pg=playerGrid.getBoundingClientRect(),sg=stage.getBoundingClientRect(),rows=Math.max(1,PLAYER_SHIP_SETUP.rows||1);
+    return{x:worldColX(intent.targetWorld)+ROOM_W()/2,y:pg.top-sg.top+(Number(intent.lane)+.5)*(pg.height/rows)};
+  }
   async function animateEnemyTrace(source,intent,impact,token){
     tracerOverlay.innerHTML='';const sourceEl=getEntityElement('enemy',source.id);if(!sourceEl)return;const a=center(sourceEl),b=endpoint(intent,impact),line=document.createElementNS('http://www.w3.org/2000/svg','line');
     line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);line.setAttribute('pathLength','1');line.setAttribute('class',`v11-intent-tracer${impact?'':' miss'}`);tracerOverlay.appendChild(line);sourceEl.classList.add('v11-preview-source');await wait(390);if(token!==preview.token)return;sourceEl.classList.remove('v11-preview-source');
@@ -204,11 +219,11 @@
   }
 
   async function revealUtility(action,index,token){
-    const key=action.id||`${action.sourceId}:${index}`,target=enemyRoom(action.targetId),targetEl=target&&getEntityElement('enemy',target.id),cancelled=utilityIntentCancelled(action);
+    const key=action.id||`${action.sourceId}:${index}`,target=enemyRoom(actionTargetId(action)),targetEl=target&&getEntityElement('enemy',target.id),cancelled=utilityIntentCancelled(action);
     detailEl.textContent=action.actionType==='repair'?`REPAIR → ${target?.name||'room'}`:`QUICK LOAD → ${target?.name||'gun'}`;
     preview.revealedUtilities.add(key);refresh();if(targetEl)flash(targetEl,'v11-preview-green',680);if(cancelled&&targetEl)showRoomTooltip(targetEl,'Cancelled');await wait(650);if(token!==preview.token)return;
   }
-  function quickLoadActionForGun(id){return currentActions().find(a=>a.actionType==='quickLoad'&&a.targetId===id&&!utilityIntentCancelled(a))||null;}
+  function quickLoadActionForGun(id){return currentActions().find(a=>a.actionType==='quickLoad'&&actionTargetId(a)===id&&!utilityIntentCancelled(a))||null;}
   async function revealWeapon(room,token){
     const label=weapons[room.weapon]?.name||room.name;
     if(room.hp<=0){if(preview.disabledSeen.has(room.id))return;preview.disabledSeen.add(room.id);detailEl.textContent=`${label} — DISABLED`;flash(getEntityElement('enemy',room.id),'v11-preview-disabled',460);await wait(430);return;}
@@ -244,7 +259,7 @@
     setTimeout(()=>{
       if(state.playerIntents?.[selected]!==targetId)return;animatePlayerTarget(selected,targetId);const target=sourceEntity('enemy',targetId);
       if(target?.weapon&&target.hp-plannedDamageTo(target.id)<=0&&activeEnemyIntent(target.id)&&currentlyReady(target))showRoomTooltip(getEntityElement('enemy',target.id),'Cancelled');
-      if(target&&knownRoom(target))currentActions().filter(a=>a.sourceId===target.id&&utilityIntentCancelled(a)).forEach(a=>{const effect=enemyRoom(a.targetId),effectEl=effect&&getEntityElement('enemy',effect.id);if(effectEl)showRoomTooltip(effectEl,'Cancelled');});
+      if(target&&knownRoom(target))currentActions().filter(a=>a.sourceId===target.id&&utilityIntentCancelled(a)).forEach(a=>{const effect=enemyRoom(actionTargetId(a)),effectEl=effect&&getEntityElement('enemy',effect.id);if(effectEl)showRoomTooltip(effectEl,'Cancelled');});
       refresh();
     },0);
   },true);
@@ -259,10 +274,10 @@
 
   async function resolveBeforeEnemyFire({logLine,floatNote,wait:phaseWait}){
     for(const action of currentActions().sort((a,b)=>{const sa=enemyRoom(a.sourceId),sb=enemyRoom(b.sourceId);return((sa?.col??999)-(sb?.col??999))||((sa?.row??999)-(sb?.row??999));})){
-      const source=enemyRoom(action.sourceId),target=enemyRoom(action.targetId),targetEl=target&&getEntityElement('enemy',target.id),sourceDead=!source||source.hp<=0,targetDead=!target||target.hp<=0;
+      const targetId=actionTargetId(action),source=enemyRoom(action.sourceId),target=enemyRoom(targetId),targetEl=target&&getEntityElement('enemy',target.id),sourceDead=!source||source.hp<=0,targetDead=!target||target.hp<=0;
       if(sourceDead||targetDead){
         if(action.actionType==='quickLoad'&&target){
-          const current=stateFor(target),original=provisionalOriginals.get(target.id);
+          const current=stateFor(target),original=provisionalOriginals.get(targetId);
           if(original&&current?.mode==='ready')combatTurn.setWeaponState(target.id,{...original});
           if(action.provisionalActive&&!targetDead)deferredLoadProgress.add(target.id);
           enemyQuickLoaded.delete(target.id);
@@ -285,7 +300,7 @@
     deferredLoadProgress.forEach(id=>{const room=roomById(id),s=stateFor(room);if(!s||s.mode!=='loading')return;const remaining=(s.remaining||1)-1;if(remaining<=0)combatTurn.setReady(id);else combatTurn.setWeaponState(id,{...s,remaining});});deferredLoadProgress.clear();
   }
 
-  window.enemyAI={rebuildForTurn:buildEnemyActions,currentActions,utilityIntentCancelled,resolveBeforeEnemyFire,afterEnemyFire,get previewActive(){return preview.active||preview.running;},replay:()=>schedulePreview(0)};
+  window.enemyAI={rebuildForTurn:buildEnemyActions,currentActions:publicCurrentActions,utilityIntentCancelled,resolveBeforeEnemyFire,afterEnemyFire,get lockedTurn(){return actionPlanTurn;},get previewActive(){return preview.active||preview.running;},replay:()=>schedulePreview(0)};
 
   let wasResolving=document.body.classList.contains('v3-resolving');
   const observer=new MutationObserver(()=>{
