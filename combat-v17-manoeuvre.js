@@ -1,15 +1,25 @@
 (() => {
   // v17: Mast Manoeuvre is a capability with a one-turn recovery cadence.
-  // Movement remains previewable during the active turn; only the final non-zero move at
-  // End Turn triggers next turn's cooldown. Returning to the turn-start position is not a manoeuvre.
+  // The turn-start alignment is private to this system. Other UI/intent observers may update
+  // compatibility state, but they cannot redefine whether the player has manoeuvred this turn.
   const manoeuvre={
     cooldown:false,
     pendingCooldown:false,
-    wasResolving:document.body.classList.contains('v3-resolving')
+    wasResolving:document.body.classList.contains('v3-resolving'),
+    anchorTurn:window.combatTurn?.turn||1,
+    turnStartMast:state.playerMastTrack
   };
 
   const currentTurn=()=>window.combatTurn?.turn||1;
-  const movedThisTurn=()=>state.playerMastTrack!==state.turnStartMast;
+  function syncTurnAnchor(){
+    const turn=currentTurn();
+    if(turn!==manoeuvre.anchorTurn){
+      manoeuvre.anchorTurn=turn;
+      manoeuvre.turnStartMast=state.playerMastTrack;
+    }
+    return manoeuvre.turnStartMast;
+  }
+  const movedThisTurn=()=>state.playerMastTrack!==syncTurnAnchor();
   const hasFiringPlan=()=>Object.keys(state.playerIntents||{}).length>0;
 
   function blockedReason(){
@@ -26,8 +36,7 @@
   }
 
   function movementBounds(){
-    if(window.combatFactory?.turnMovementBounds)return combatFactory.turnMovementBounds();
-    const start=state.turnStartMast;
+    const start=syncTurnAnchor();
     return {min:Math.max(PLAYER_MAST_MIN,start-1),max:Math.min(PLAYER_MAST_MAX,start+1)};
   }
 
@@ -45,15 +54,16 @@
     else showRoomTooltip(playerMastBox,'Flee route unavailable');
   }
 
-  // Wrap the generalized movement functions so keyboard and button input share the same rule.
   const baseMoveLeft=moveLeft,baseMoveRight=moveRight;
   moveLeft=function(){
+    syncTurnAnchor();
     if(showBlocked()){refresh();return;}
     if(fleeAttempt(-1)){offerFlee();return;}
     if(canStep(-1))window.combatDodgeFeedback?.reset?.();
     baseMoveLeft();
   };
   moveRight=function(){
+    syncTurnAnchor();
     if(showBlocked()){refresh();return;}
     if(fleeAttempt(1)){offerFlee();return;}
     if(canStep(1))window.combatDodgeFeedback?.reset?.();
@@ -61,6 +71,7 @@
   };
 
   function mastStatus(){
+    syncTurnAnchor();
     if(playerMast.hp<=0)return {kind:'disabled',icon:'✕',label:'DISABLED',title:'Mast destroyed — cannot manoeuvre'};
     if(manoeuvre.cooldown)return {kind:'cooldown',icon:'⛵',label:'RESETTING',title:'Sails resetting after last turn’s manoeuvre — movement unavailable this turn'};
     if(movedThisTurn())return {kind:'used',icon:'↔',label:'USED',title:'Manoeuvre planned — sails will need to reset next turn'};
@@ -80,9 +91,6 @@
   function decorateMovementControls(){
     const bounds=movementBounds();
     const blocked=!!blockedReason();
-
-    // During a meaningful blocked state leave the arrows clickable so they can explain why.
-    // At the outer hull edge, the outward arrow remains clickable to offer Flee instead.
     if(blocked){
       moveAft.disabled=false;moveFore.disabled=false;
       moveAft.classList.add('v17-move-blocked');moveFore.classList.add('v17-move-blocked');
@@ -121,13 +129,13 @@
 
   const baseRefresh=refresh;
   refresh=function(){
+    syncTurnAnchor();
     baseRefresh();
     decorateMastStatus();
     decorateMovementControls();
     syncDodgePulse();
   };
 
-  // Resolution start commits the final planned alignment. Resolution end opens the next turn.
   const phaseObserver=new MutationObserver(()=>{
     const now=document.body.classList.contains('v3-resolving');
     if(!manoeuvre.wasResolving&&now){
@@ -136,13 +144,15 @@
     if(manoeuvre.wasResolving&&!now&&!window.combatEnded){
       manoeuvre.cooldown=manoeuvre.pendingCooldown;
       manoeuvre.pendingCooldown=false;
+      manoeuvre.anchorTurn=currentTurn();
+      manoeuvre.turnStartMast=state.playerMastTrack;
+      state.turnStartMast=manoeuvre.turnStartMast;
       refresh();
     }
     manoeuvre.wasResolving=now;
   });
   phaseObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
 
-  // Dodge tooltips are transient, so keep the blue pulse exactly as long as the tooltip exists.
   const dodgeObserver=new MutationObserver(syncDodgePulse);
   dodgeObserver.observe(stage,{childList:true,subtree:true});
 
@@ -151,6 +161,7 @@
     get movedThisTurn(){return movedThisTurn();},
     get status(){return mastStatus().kind;},
     get turn(){return currentTurn();},
+    get startMast(){return syncTurnAnchor();},
     clearCooldown(){manoeuvre.cooldown=false;manoeuvre.pendingCooldown=false;refresh();},
     canMove(){return !blockedReason();}
   };
