@@ -16,6 +16,14 @@
 .loading-v4{top:8px!important;right:8px!important}
 .destroyed-gun-badge{top:8px!important;right:8px!important}
 
+/* Utility-room reach: Carpenter reaches all eight neighbours; Magazine only orthogonal neighbours. */
+.room.utility-selected{box-shadow:inset 0 0 0 4px rgba(180,124,30,.95)!important}
+.room.utility-outside-range{opacity:.34!important;filter:grayscale(.72)}
+.room.utility-reachable.utility-reach-inactive{opacity:.57!important;filter:grayscale(.52)}
+.room.utility-target{opacity:1!important;filter:none!important;box-shadow:inset 0 0 0 4px rgba(66,126,154,.94)!important;background:rgba(78,128,165,.15)!important}
+.utility-reach-arrow{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);z-index:34;width:30px;height:30px;border:1px solid rgba(89,101,102,.42);border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(231,226,214,.82);color:#748082;font:900 20px/1 Arial,sans-serif;pointer-events:none;opacity:.55}
+.utility-reach-arrow.active{border:2px solid rgba(60,116,150,.80);background:rgba(223,239,247,.95);color:#356d91;opacity:1;box-shadow:0 2px 7px rgba(0,0,0,.12)}
+
 .room.enemy-intended,.mast-box.enemy-intended{background:repeating-linear-gradient(-45deg,rgba(194,66,58,.24),rgba(194,66,58,.24) 5px,transparent 5px,transparent 14px)!important}
 .room.enemy-intended[data-threat-count="2"],.mast-box.enemy-intended[data-threat-count="2"]{background:repeating-linear-gradient(-45deg,rgba(194,66,58,.33),rgba(194,66,58,.33) 5px,transparent 5px,transparent 10px)!important}
 .room.enemy-intended[data-threat-count="3"],.mast-box.enemy-intended[data-threat-count="3"]{background:repeating-linear-gradient(-45deg,rgba(194,66,58,.41),rgba(194,66,58,.41) 5px,transparent 5px,transparent 7px)!important}
@@ -38,6 +46,12 @@
 .v11-enemy-action-chip.cancelled{filter:grayscale(.85);opacity:.52;text-decoration:line-through}
 .v11-quickloaded-badge{position:absolute;right:8px;top:34px;z-index:28;padding:3px 5px;border:1px solid rgba(45,129,80,.7);border-radius:3px;background:rgba(225,245,226,.97);color:#287347;font:900 13px/1 Arial,sans-serif;pointer-events:none}
 
+/* Destroyed lower-deck rooms remain greyed, with an unmistakable blue flood strip. */
+.room.v11-flooded{overflow:hidden}
+.v11-flood-marker{position:absolute;left:0;bottom:0;top:34%;width:14px;z-index:32;border-right:2px solid rgba(50,126,171,.82);background:linear-gradient(to right,rgba(69,151,196,.42),rgba(69,151,196,.12));color:#2e78a2;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:5px;pointer-events:none}
+.v11-flood-marker span{font:900 13px/1 Arial,sans-serif;margin-bottom:3px}
+.v11-flood-marker b{writing-mode:vertical-rl;transform:rotate(180deg);font:900 7px/1 Arial,sans-serif;letter-spacing:.08em}
+
 .v11-intent-preview{display:none;position:absolute;inset:0;z-index:106;align-items:center;justify-content:center;pointer-events:auto;background:rgba(16,35,38,.11)}
 .v11-intent-preview.visible{display:flex}
 .v11-intent-card{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);min-width:350px;padding:19px 30px 18px;border:2px solid rgba(42,58,61,.74);background:rgba(241,234,216,.98);box-shadow:0 12px 34px rgba(0,0,0,.19);text-align:center;transition:transform .18s ease,background .18s ease}
@@ -50,11 +64,15 @@
 body.v11-intent-preview-active .room,body.v11-intent-preview-active .mast-box,body.v11-intent-preview-active .move-btn,body.v11-intent-preview-active .v3-end-turn{pointer-events:none!important}
 .room.v11-preview-unrevealed .loading-v4{visibility:hidden!important}
 
-.v11-intent-tracer-overlay,.v11-player-tracer-overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
-.v11-intent-tracer-overlay{z-index:104}.v11-player-tracer-overlay{z-index:103}
+.v11-intent-tracer-overlay,.v11-player-tracer-overlay,.v11-utility-link-overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.v11-intent-tracer-overlay{z-index:104}.v11-player-tracer-overlay{z-index:103}.v11-utility-link-overlay{z-index:145}
 .v11-intent-tracer{stroke:rgba(190,67,59,.92);stroke-width:3;fill:none;vector-effect:non-scaling-stroke;stroke-dasharray:1;stroke-dashoffset:1;animation:v11Trace .38s ease forwards}
 .v11-intent-tracer.miss{stroke:rgba(86,98,100,.82);stroke-dasharray:.12 .08}
 .v11-player-tracer{stroke:rgba(56,112,151,.94);stroke-width:3.5;fill:none;vector-effect:non-scaling-stroke;stroke-dasharray:1;stroke-dashoffset:1;animation:v11Trace .38s ease forwards}
+.v11-utility-cancel-link{stroke:rgba(48,139,84,.96);stroke-width:4;fill:none;vector-effect:non-scaling-stroke;stroke-dasharray:.10 .07;stroke-dashoffset:1;animation:v11Trace .34s ease forwards;transition:stroke .2s,opacity .2s}
+.v11-utility-cancel-link.cancelled{stroke:rgba(175,62,55,.96);opacity:.78}
+.v11-utility-cancel-x{fill:#a63e38;stroke:#f4ead8;stroke-width:2;paint-order:stroke;opacity:0;font:900 31px/1 Arial,sans-serif;transition:opacity .12s,transform .12s;transform-box:fill-box;transform-origin:center}
+.v11-utility-cancel-x.visible{opacity:1;transform:scale(1.12)}
 @keyframes v11Trace{to{stroke-dashoffset:0}}
 .v11-preview-source{animation:v11SourcePulse .4s ease}
 .v11-preview-target-flash{animation:v11TargetPulse .54s ease}
