@@ -17,14 +17,17 @@
   });
 
   window.addEventListener('combat-ended',()=>{
-    resetArm();endButton.textContent='RETURN TO SHIP SELECT';endButton.classList.add('ended');
+    resetArm();
+    // Final-result navigation lives inside the outcome card so the combat-end input lock cannot
+    // intercept it. Hide the old bottom-left control rather than leaving a dead-looking button.
+    endButton.hidden=true;
     queueMicrotask(()=>{
       const actions=stage.querySelector('.v11-outcome-actions');if(!actions)return;
-      actions.innerHTML='';
-      const again=document.createElement('button');again.type='button';again.className='v11-accept';again.textContent='REPLAY MATCH';
-      const back=document.createElement('button');back.type='button';back.className='v11-refuse';back.textContent='RETURN TO SHIP SELECT';
-      again.addEventListener('click',e=>{e.stopPropagation();replay();});
-      back.addEventListener('click',e=>{e.stopPropagation();returnToSelect();});
+      actions.innerHTML='';actions.classList.add('v28-final-actions');
+      const again=document.createElement('button');again.type='button';again.className='v28-replay';again.textContent='REPLAY MATCH';
+      const back=document.createElement('button');back.type='button';back.className='v28-return';back.textContent='RETURN TO SHIP SELECT';
+      again.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();replay();});
+      back.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();returnToSelect();});
       actions.append(again,back);
     });
   });
