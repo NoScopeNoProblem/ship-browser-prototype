@@ -58,6 +58,9 @@
     return getEntityElement(side,id)?.querySelector('.pips')||null;
   }
   function markExplosionPipsLast(side,dist){
+    // v20 renders each projected damage pip from an explicit damage type. Do not repaint those
+    // pips here or a room receiving cannon + blast damage can incorrectly show two explosions.
+    if(window.combatDamage)return;
     (dist?.explosions||new Map()).forEach((count,id)=>{
       const entity=sourceEntity(side,id),container=explosionPipContainer(side,id);if(!entity||!container)return;
       const pips=[...container.querySelectorAll('span')];
