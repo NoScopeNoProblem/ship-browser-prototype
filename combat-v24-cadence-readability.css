@@ -1,0 +1,50 @@
+/* v24: committed-action readability + intent replay control */
+.v24-action-readability-overlay{
+  position:absolute;inset:0;width:100%;height:100%;z-index:84;pointer-events:none;overflow:visible;
+}
+.v24-action-line{
+  fill:none;stroke-width:2.4;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;
+  animation:v24ActionTrace 1.18s ease-out both;
+}
+.v24-action-line.friendly-fire{
+  stroke:rgba(54,116,163,.9);filter:drop-shadow(0 1px 1px rgba(26,65,94,.18));
+}
+.v24-action-line.enemy-fire{
+  stroke:rgba(179,63,55,.88);filter:drop-shadow(0 1px 1px rgba(82,24,20,.18));
+}
+.v24-action-line.support{
+  stroke:rgba(50,139,80,.9);stroke-width:3;filter:drop-shadow(0 1px 1px rgba(25,78,44,.16));
+}
+.v24-support-arrow-head{fill:rgba(50,139,80,.94)}
+@keyframes v24ActionTrace{
+  0%{stroke-dashoffset:1;opacity:0}
+  12%{opacity:1}
+  55%{stroke-dashoffset:0;opacity:1}
+  82%{stroke-dashoffset:0;opacity:.92}
+  100%{stroke-dashoffset:0;opacity:0}
+}
+.room.v24-target-pulse,.mast-box.v24-target-pulse{
+  animation:v24FriendlyTargetPulse .76s ease-out 1!important;
+}
+.room.v24-support-pulse{
+  animation:v24SupportTargetPulse .76s ease-out 1!important;
+}
+@keyframes v24FriendlyTargetPulse{
+  0%,100%{box-shadow:inherit}
+  35%,70%{box-shadow:inset 0 0 0 3px rgba(54,116,163,.82),0 0 0 2px rgba(54,116,163,.10)}
+}
+@keyframes v24SupportTargetPulse{
+  0%,100%{box-shadow:inherit}
+  35%,70%{box-shadow:inset 0 0 0 3px rgba(50,139,80,.84),0 0 0 2px rgba(50,139,80,.10)}
+}
+.v24-replay-intents{
+  position:absolute;left:18px;z-index:118;
+  min-width:116px;height:30px;padding:0 10px;border-radius:4px;
+  border:1px solid rgba(63,82,87,.58);background:rgba(239,235,222,.97);color:#405358;
+  font:800 9px/1 Arial,sans-serif;letter-spacing:.065em;cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,.13);
+}
+.v24-replay-intents:hover:not(:disabled){
+  background:rgba(228,239,242,.99);border-color:rgba(53,105,123,.68);color:#345f70;
+}
+.v24-replay-intents:disabled{opacity:.32;filter:grayscale(.7);cursor:default}
