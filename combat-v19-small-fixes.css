@@ -1,43 +1,64 @@
-/* v19: quick-load readability, repair-intent de-duplication, and guaranteed Mast MISS marker. */
+/* v19: quick-load readability, repair-intent de-duplication, Mast MISS, and explosion safeguards. */
 
 /* Enemy repair intent is already represented by the green heart in the target pip meter. */
 .v11-enemy-action-chip.repair{display:none!important}
 
+/* Quick Load gets a longer, unmistakable green beat. */
 .room.v19-quickload-flash{
-  animation:v19QuickLoadRoom .78s ease-in-out 1!important;
+  animation:v19QuickLoadRoom 1.12s ease-in-out 1!important;
+}
+.room.v19-quickload-source{
+  animation:v19QuickLoadSource 1.05s ease-in-out 1!important;
 }
 .v19-quickload-pop{
   position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);z-index:152;
-  min-width:92px;padding:7px 10px;border:2px solid rgba(48,139,84,.82);border-radius:4px;
-  display:flex;align-items:center;justify-content:center;gap:6px;
+  min-width:100px;padding:7px 10px;border:2px solid rgba(48,139,84,.82);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;gap:7px;
   background:rgba(225,246,228,.98);color:#287347;
   box-shadow:0 3px 10px rgba(33,94,55,.18);pointer-events:none;
-  animation:v19QuickLoadPop .88s ease both;
+  animation:v19QuickLoadPop 1.12s ease both;
 }
-.v19-quickload-pop span{font:900 21px/1 Arial,sans-serif}
-.v19-quickload-pop b{font:900 9px/1 Arial,sans-serif;letter-spacing:.08em}
+.v19-quickload-pop span{
+  display:inline-block;font:900 23px/1 Arial,sans-serif;
+  animation:v19QuickLoadRotate 1.02s ease-in-out 1 both;
+}
+.v19-quickload-pop b{font:900 9px/1 Arial,sans-serif;letter-spacing:.08em;white-space:nowrap}
+@keyframes v19QuickLoadRotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes v19QuickLoadRoom{
+  0%,100%{box-shadow:none;background-color:transparent}
+  22%,74%{box-shadow:inset 0 0 0 5px rgba(48,139,84,.86),0 0 0 3px rgba(48,139,84,.12);background-color:rgba(190,236,199,.20)}
+}
+@keyframes v19QuickLoadSource{
   0%,100%{box-shadow:none}
-  35%,68%{box-shadow:inset 0 0 0 5px rgba(48,139,84,.86),0 0 0 3px rgba(48,139,84,.12)}
+  34%,72%{box-shadow:inset 0 0 0 3px rgba(48,139,84,.52)}
 }
 @keyframes v19QuickLoadPop{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(.74) rotate(-8deg)}
-  22%,72%{opacity:1;transform:translate(-50%,-50%) scale(1.04) rotate(0)}
-  100%{opacity:0;transform:translate(-50%,-50%) scale(.96) rotate(5deg)}
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.78)}
+  18%,78%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(.96)}
 }
 
-/* The Mast MISS must sit above the hull layer in the world column that was vacated. */
+/* The Mast MISS sits in the vacated world column immediately above the player's hull. */
 .v18-mast-miss-marker{display:none!important}
 .v19-mast-miss-marker{
-  position:absolute;z-index:260;transform:translate(-50%,-50%);
-  min-width:72px;padding:7px 9px;border:2px dashed rgba(123,75,70,.82);border-radius:4px;
-  display:flex;align-items:center;justify-content:center;gap:6px;
-  background:rgba(246,237,221,.99);color:#7f4945;
-  box-shadow:0 3px 10px rgba(0,0,0,.18);pointer-events:auto;
-  animation:v19MastMiss .34s ease-out both;
+  position:absolute;z-index:280;transform:translate(-50%,-50%);
+  min-width:90px;min-height:36px;padding:6px 10px;
+  border:2px solid rgba(67,125,174,.92);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  background:rgba(229,241,250,.99);color:#356f9b;
+  box-shadow:0 3px 11px rgba(0,0,0,.20);pointer-events:auto;
+  animation:v19MastMiss .28s ease-out both;
 }
-.v19-mast-miss-marker b{font:900 10px/1 Arial,sans-serif;letter-spacing:.12em}
+.v19-mast-miss-marker b{font:900 12px/1 Arial,sans-serif;letter-spacing:.12em}
+.v19-mast-miss-marker .weapon-icon{color:#356f9b}
 @keyframes v19MastMiss{
   from{opacity:0;transform:translate(-50%,-50%) scale(.76)}
   to{opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
+
+/* Magazine collateral must never collapse back into an ordinary cannon-target crosshair. */
+.pips span.explosion-hit{
+  color:#a95f25!important;background:rgba(248,221,174,.96)!important;
+  border-radius:3px;padding:0 2px;font-weight:900!important;
+  box-shadow:inset 0 0 0 1px rgba(183,104,37,.30);
 }
