@@ -1,6 +1,6 @@
 (() => {
   window.combatEnded=false;
-  let surrenderRefused=false,offerPromise=null,offerResolve=null;
+  let surrenderRefused=false,offerPromise=null,offerResolve=null,fleePromise=null,fleeResolve=null;
 
   const overlay=document.createElement('div');
   overlay.className='v11-outcome-overlay';
@@ -58,14 +58,18 @@
 
   function lockCombat(){
     document.body.classList.add('v11-combat-ended');const end=stage.querySelector('.v3-end-turn');if(end)end.disabled=true;moveAft.disabled=true;moveFore.disabled=true;
-    document.body.classList.remove('v11-intent-preview-active','v9-turn-intro-active');stage.querySelector('.v11-intent-preview')?.classList.remove('visible','handoff');
+    document.body.classList.remove('v11-intent-preview-active','v9-turn-intro-active','v11-surrender-offer','v11-flee-offer');stage.querySelector('.v11-intent-preview')?.classList.remove('visible','handoff');
   }
   function endCombat(kind){
-    if(window.combatEnded)return;window.combatEnded=true;lockCombat();actions.innerHTML='';kicker.textContent=kind==='defeat'?'DEFEAT':'VICTORY';
+    if(window.combatEnded)return;window.combatEnded=true;lockCombat();actions.innerHTML='';
+    if(kind==='defeat')kicker.textContent='DEFEAT';
+    else if(kind==='fled')kicker.textContent='COMBAT ENDED';
+    else kicker.textContent='VICTORY';
     if(kind==='surrender'){title.textContent='ENEMY SURRENDERED';copy.textContent='The enemy strikes its colours. The ship is yours to take.';}
     else if(kind==='sunk'){title.textContent='ENEMY SHIP SUNK';copy.textContent='Too much of the lower deck is gone. She slips beneath the water.';}
+    else if(kind==='fled'){title.textContent='YOU FLED';copy.textContent='You break away from the engagement and make sail for open water.';}
     else{title.textContent='YOUR SHIP SUNK';copy.textContent='More than half of the lower deck is lost.';}
-    overlay.classList.add('visible','final');window.dispatchEvent(new CustomEvent('combat-ended',{detail:{kind}}));
+    overlay.classList.remove('offer','flee-offer');overlay.classList.add('visible','final');window.dispatchEvent(new CustomEvent('combat-ended',{detail:{kind}}));
   }
 
   function offerSurrender(reason){
@@ -77,6 +81,18 @@
     accept.addEventListener('click',e=>{e.stopPropagation();overlay.classList.remove('offer');document.body.classList.remove('v11-surrender-offer');const resolve=offerResolve;offerResolve=null;offerPromise=null;endCombat('surrender');resolve?.(true);});
     refuse.addEventListener('click',e=>{e.stopPropagation();surrenderRefused=true;overlay.classList.remove('visible','offer');document.body.classList.remove('v11-surrender-offer');const resolve=offerResolve;offerResolve=null;offerPromise=null;refresh();resolve?.(false);});
     return offerPromise;
+  }
+
+  function offerFlee(){
+    if(window.combatEnded||window.combatTurn?.resolving)return Promise.resolve(false);if(fleePromise)return fleePromise;
+    kicker.textContent='MANOEUVRE';title.textContent='FLEE?';copy.textContent='Break away from the engagement and end combat?';actions.innerHTML='';
+    const confirm=document.createElement('button');confirm.textContent='FLEE — END COMBAT';confirm.className='v11-accept';
+    const cancel=document.createElement('button');cancel.textContent='CANCEL';cancel.className='v11-refuse';actions.append(confirm,cancel);
+    overlay.classList.remove('offer');overlay.classList.add('visible','flee-offer');document.body.classList.add('v11-flee-offer');
+    fleePromise=new Promise(resolve=>{fleeResolve=resolve;});
+    confirm.addEventListener('click',e=>{e.stopPropagation();document.body.classList.remove('v11-flee-offer');const resolve=fleeResolve;fleeResolve=null;fleePromise=null;endCombat('fled');resolve?.(true);});
+    cancel.addEventListener('click',e=>{e.stopPropagation();overlay.classList.remove('visible','flee-offer');document.body.classList.remove('v11-flee-offer');const resolve=fleeResolve;fleeResolve=null;fleePromise=null;refresh();resolve?.(false);});
+    return fleePromise;
   }
 
   async function maybeOfferPlanningSurrender(){
@@ -115,10 +131,11 @@
     afterDamage
   };
 
-  window.addEventListener('click',e=>{if(!document.body.classList.contains('v11-surrender-offer'))return;if(e.target.closest?.('.v11-outcome-overlay'))return;e.preventDefault();e.stopImmediatePropagation();},true);
-  window.addEventListener('keydown',e=>{if(!document.body.classList.contains('v11-surrender-offer'))return;e.preventDefault();e.stopImmediatePropagation();},true);
+  function promptActive(){return document.body.classList.contains('v11-surrender-offer')||document.body.classList.contains('v11-flee-offer');}
+  window.addEventListener('click',e=>{if(!promptActive())return;if(e.target.closest?.('.v11-outcome-overlay'))return;e.preventDefault();e.stopImmediatePropagation();},true);
+  window.addEventListener('keydown',e=>{if(!promptActive())return;e.preventDefault();e.stopImmediatePropagation();},true);
   window.addEventListener('click',e=>{if(!window.combatEnded)return;if(e.target.closest?.('.v11-outcome-overlay'))return;e.preventDefault();e.stopImmediatePropagation();},true);
   window.addEventListener('keydown',e=>{if(!window.combatEnded)return;e.preventDefault();e.stopImmediatePropagation();},true);
 
-  window.combatOutcome={isSunk:actualSunk,sinkThreshold,offerSurrender,get surrenderRefused(){return surrenderRefused;},get ended(){return window.combatEnded;}};
+  window.combatOutcome={isSunk:actualSunk,sinkThreshold,offerSurrender,offerFlee,endCombat,get surrenderRefused(){return surrenderRefused;},get ended(){return window.combatEnded;}};
 })();
