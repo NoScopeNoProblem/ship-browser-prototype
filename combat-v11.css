@@ -48,6 +48,7 @@
 
 /* Destroyed lower-deck rooms remain greyed, with an unmistakable blue flood strip. */
 .room.v11-flooded{overflow:hidden}
+.room.destroyed-room.v11-flooded{filter:none!important}
 .v11-flood-marker{position:absolute;left:0;bottom:0;top:34%;width:14px;z-index:32;border-right:2px solid rgba(50,126,171,.82);background:linear-gradient(to right,rgba(69,151,196,.42),rgba(69,151,196,.12));color:#2e78a2;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:5px;pointer-events:none}
 .v11-flood-marker span{font:900 13px/1 Arial,sans-serif;margin-bottom:3px}
 .v11-flood-marker b{writing-mode:vertical-rl;transform:rotate(180deg);font:900 7px/1 Arial,sans-serif;letter-spacing:.08em}
