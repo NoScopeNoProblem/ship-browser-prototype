@@ -12,12 +12,6 @@
     return state.selectedWeaponId ? sourceEntity('player', state.selectedWeaponId) : null;
   }
 
-  function targetIdFromElement(el){
-    if(!el) return null;
-    if(el.id === 'enemyMastBox') return enemyMast.id;
-    return el.dataset ? el.dataset.id : null;
-  }
-
   function decorateTargetMode(){
     document.querySelectorAll('.target-mode-candidate,.target-hover-valid').forEach(el => {
       el.classList.remove('target-mode-candidate','target-hover-valid');
@@ -52,22 +46,18 @@
     else enemyMastBox.classList.remove('destroyed-room');
   }
 
-  function utilityAvailable(id){
-    const el = getEntityElement('player', id);
-    if(!el || el.classList.contains('utility-used') || el.classList.contains('utility-unavailable')) return false;
-    const room = sourceEntity('player', id);
-    return !!room && room.hp > 0;
+  function actionAvailable(room){
+    if(!room || room.hp<=0) return false;
+    if(room.actionType==='fire') return !!room.weapon && !room.loading;
+    if(room.actionType==='repair' || room.actionType==='quickLoad'){
+      return !!window.combatUtility && combatUtility.isAvailable(room);
+    }
+    return false;
   }
 
   function decorateActionReady(){
     document.querySelectorAll('.action-ready').forEach(el => el.classList.remove('action-ready'));
-
-    playerRooms.forEach(room => {
-      if(room.hp <= 0) return;
-      let ready = false;
-      if(room.weapon) ready = !room.loading;
-      else if(room.id === 'p_carp' || room.id === 'p_mag') ready = utilityAvailable(room.id);
-      if(!ready) return;
+    playerRooms.filter(actionAvailable).forEach(room => {
       const el = getEntityElement('player', room.id);
       if(el) el.classList.add('action-ready');
     });
@@ -118,7 +108,6 @@
     decorateTargetMode();
   };
 
-  // Hovering a legal target while a friendly gun is selected gets an explicit cue.
   stage.addEventListener('pointerover', e => {
     if(resolving() || !state.selectedWeaponId) return;
     const el = enemyTargetElementFromEvent(e);
@@ -134,8 +123,6 @@
     el.classList.remove('target-hover-valid');
   }, true);
 
-  // A destroyed friendly gun is disabled, never "loading". Capture this before the
-  // older room click handler can report the loading state.
   stage.addEventListener('click', e => {
     if(resolving()) return;
     const el = e.target.closest && e.target.closest('.room[data-side="player"].weapon');
