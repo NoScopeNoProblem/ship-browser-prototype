@@ -1,5 +1,5 @@
 (() => {
-  // v19: last-mile readability safeguards. Loaded last so these are presentation-only.
+  // v19: quick-load readability only. Damage typing and Mast misses are owned by v20.
   const previousSetTimeout = window.setTimeout.bind(window);
   const quickLoadSeen = new Set();
 
@@ -60,96 +60,9 @@
     }, 1050);
   }
 
-  function pipContainer(side,id){
-    if(id === playerMast.id) return playerMastPips;
-    if(id === enemyMast.id) return enemyMastPips;
-    return getEntityElement(side,id)?.querySelector('.pips') || null;
-  }
-
-  // Keep collateral damage as ✹ even if a later refresh/decorator rebuilt the same pip as
-  // an ordinary cannon crosshair.
-  function enforceExplosionMarkers(){
-    if(window.combatEnded || window.combatTurn?.resolving) return;
-    let playerState, enemyState;
-    try{
-      playerState = playerIntentDistribution();
-      enemyState = enemyIntentDistribution(playerState);
-    }catch{return;}
-
-    [['enemy',playerState],['player',enemyState]].forEach(([side,dist]) => {
-      (dist?.explosions || new Map()).forEach((count,id) => {
-        if(count <= 0) return;
-        const container = pipContainer(side,id); if(!container) return;
-        const candidates = [...container.querySelectorAll('span')].filter(p =>
-          p.classList.contains('hit') || p.classList.contains('intent-crosshair') || p.classList.contains('explosion-hit')
-        );
-        for(let i=0;i<count && i<candidates.length;i++){
-          const pip = candidates[candidates.length - 1 - i];
-          pip.className = 'explosion-hit';
-          pip.textContent = '✹';
-          pip.title = 'Magazine explosion: +1 damage';
-        }
-      });
-    });
-  }
-
-  function clearMastMisses(){
-    document.querySelectorAll('.v19-mast-miss-marker,.v18-mast-miss-marker').forEach(n => n.remove());
-  }
-
-  function sourceDisabledByPlayerPlan(source){
-    try{return source.hp - (playerIntentDistribution()?.hits?.get(source.id) || 0) <= 0;}
-    catch{return false;}
-  }
-
-  // Do not depend on generic missMap. If the enemy aimed at the Mast's start-of-turn world
-  // column and the player has manoeuvred away, that is explicitly a MISS.
-  function decorateMastMisses(){
-    clearMastMisses();
-    if(window.combatEnded || window.combatTurn?.resolving || document.body.classList.contains('v11-intent-preview-active')) return;
-
-    const turnStart = state.turnStartMast ?? window.combatTurn?.startMast ?? state.playerMastTrack;
-    if(state.playerMastTrack === turnStart) return;
-
-    const mastShots = enemyIntents.filter(intent => {
-      const source = sourceEntity('enemy', intent.sourceId);
-      if(!source || source.hp <= 0 || !source.weapon || intent.inactive) return false;
-      if(!window.combatTurn?.isReady(source.id) || sourceDisabledByPlayerPlan(source)) return false;
-      const aimedAtMast = intent.logicalTargetId === playerMast.id || intent.lane === 'mast';
-      if(!aimedAtMast) return false;
-      const range = weapons[source.weapon]?.range ?? weapons[source.weapon]?.arc ?? 0;
-      return Math.abs(turnStart - sourceWorld('enemy',source)) <= range;
-    });
-    if(!mastShots.length) return;
-
-    mastShots.forEach(intent =>
-      stage.querySelectorAll(`.miss-marker[data-source-id="${intent.sourceId}"]`).forEach(n => n.remove())
-    );
-
-    const sr = stage.getBoundingClientRect(), pg = playerGrid.getBoundingClientRect();
-    const x = worldColX(turnStart) + ROOM_W()/2;
-    const baseY = pg.top - sr.top - 26;
-
-    mastShots.forEach((intent,index) => {
-      const source = sourceEntity('enemy', intent.sourceId); if(!source) return;
-      const marker = document.createElement('div');
-      marker.className = 'v19-mast-miss-marker';
-      marker.dataset.sourceId = intent.sourceId;
-      marker.style.left = `${x}px`;
-      marker.style.top = `${baseY - index*32}px`;
-      marker.innerHTML = `${iconMarkup(source.weapon, enemySuffix[source.id] || '', true)}<b>MISS</b>`;
-      marker.title = `${weapons[source.weapon]?.name || 'Enemy cannon'} missed the Mast after manoeuvre`;
-      marker.addEventListener('mouseenter', () => beginIntentHover('enemy', intent.sourceId));
-      marker.addEventListener('mouseleave', endIntentHover);
-      stage.appendChild(marker);
-    });
-  }
-
   function decorate(){
     // Enemy repair intention is already represented in the health row by its green ♥+ pip.
     enemyGrid.querySelectorAll('.v11-enemy-action-chip.repair').forEach(n => n.remove());
-    enforceExplosionMarkers();
-    decorateMastMisses();
     animateQuickLoadIntent();
   }
 
@@ -160,13 +73,6 @@
   if(detail) new MutationObserver(() => requestAnimationFrame(animateQuickLoadIntent))
     .observe(detail, {childList:true, subtree:true, characterData:true});
 
-  moveAft.addEventListener('click', () => requestAnimationFrame(refresh));
-  moveFore.addEventListener('click', () => requestAnimationFrame(refresh));
-  window.addEventListener('keydown', e => {
-    if(e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'KeyR') requestAnimationFrame(refresh);
-  }, true);
-  window.addEventListener('resize', () => requestAnimationFrame(decorateMastMisses));
-  window.addEventListener('combat-ended', () => { clearMastMisses(); clearQuickLoadVisuals(); });
-
+  window.addEventListener('combat-ended', clearQuickLoadVisuals);
   refresh();
 })();
