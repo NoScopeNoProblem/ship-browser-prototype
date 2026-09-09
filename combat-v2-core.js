@@ -130,7 +130,8 @@ function makeRoom(r,side){
         e.stopPropagation();
         if(state.exterior) return;
         if(r.hp<=0){ state.selectedWeaponId=null; state.hoveredWeapon=null; refresh(); showRoomTooltip(el,'Disabled'); return; }
-        if(r.loading){ state.selectedWeaponId=null; state.hoveredWeapon=null; refresh(); showRoomTooltip(el,'Loading'); return; }
+        const loading=window.combatTurn ? !combatTurn.isReady(r.id) : !!r.loading;
+        if(loading){ state.selectedWeaponId=null; state.hoveredWeapon=null; refresh(); showRoomTooltip(el,'Loading'); return; }
         state.hoveredWeapon=null;
         state.selectedWeaponId=state.selectedWeaponId===r.id?null:r.id;
         refresh();
