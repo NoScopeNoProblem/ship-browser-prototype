@@ -60,26 +60,31 @@
     document.body.classList.add('v11-combat-ended');const end=stage.querySelector('.v3-end-turn');if(end)end.disabled=true;moveAft.disabled=true;moveFore.disabled=true;
     document.body.classList.remove('v11-intent-preview-active','v9-turn-intro-active','v11-surrender-offer','v11-flee-offer');stage.querySelector('.v11-intent-preview')?.classList.remove('visible','handoff');
   }
-  function endCombat(kind){
+  function endCombat(kind,meta={}){
     if(window.combatEnded)return;window.combatEnded=true;lockCombat();actions.innerHTML='';
     if(kind==='defeat')kicker.textContent='DEFEAT';
     else if(kind==='fled')kicker.textContent='COMBAT ENDED';
+    else if(kind==='surrender'&&meta.surrenderType==='sittingDuck')kicker.textContent='SPECIAL SURRENDER 🦆';
     else kicker.textContent='VICTORY';
-    if(kind==='surrender'){title.textContent='ENEMY SURRENDERED';copy.textContent='The enemy strikes its colours. The ship is yours to take.';}
+    if(kind==='surrender'&&meta.surrenderType==='sittingDuck'){title.textContent='SITTING DUCK SURRENDER';copy.textContent='Pinned, out of reach and unable to stop you, the enemy strikes its colours.';}
+    else if(kind==='surrender'){title.textContent='ENEMY SURRENDERED';copy.textContent='The enemy strikes its colours. The ship is yours to take.';}
     else if(kind==='sunk'){title.textContent='ENEMY SHIP SUNK';copy.textContent='Too much of the lower deck is gone. She slips beneath the water.';}
     else if(kind==='fled'){title.textContent='YOU FLED';copy.textContent='You break away from the engagement and make sail for open water.';}
     else{title.textContent='YOUR SHIP SUNK';copy.textContent='More than half of the lower deck is lost.';}
-    overlay.classList.remove('offer','flee-offer');overlay.classList.add('visible','final');window.dispatchEvent(new CustomEvent('combat-ended',{detail:{kind}}));
+    overlay.classList.remove('offer','flee-offer','sitting-duck-offer');overlay.classList.add('visible','final');window.dispatchEvent(new CustomEvent('combat-ended',{detail:{kind,...meta}}));
   }
 
-  function offerSurrender(reason){
+  function offerSurrender(reason,surrenderType='normal'){
     if(window.combatEnded||surrenderRefused)return Promise.resolve(false);if(offerPromise)return offerPromise;
-    kicker.textContent='ENEMY SIGNAL';title.textContent='SURRENDER OFFERED';copy.textContent=reason||'The enemy offers to strike its colours.';actions.innerHTML='';
-    const accept=document.createElement('button');accept.textContent='ACCEPT SURRENDER';accept.className='v11-accept';
-    const refuse=document.createElement('button');refuse.textContent='REFUSE — KEEP FIRING';refuse.className='v11-refuse';actions.append(accept,refuse);overlay.classList.add('visible','offer');document.body.classList.add('v11-surrender-offer');
+    const sittingDuck=surrenderType==='sittingDuck';
+    kicker.textContent=sittingDuck?'SPECIAL SURRENDER 🦆':'ENEMY SIGNAL';
+    title.textContent=sittingDuck?'SITTING DUCK':'SURRENDER OFFERED';
+    copy.textContent=reason||'The enemy offers to strike its colours.';actions.innerHTML='';
+    const accept=document.createElement('button');accept.textContent=sittingDuck?'ACCEPT SURRENDER 🦆':'ACCEPT SURRENDER';accept.className='v11-accept';
+    const refuse=document.createElement('button');refuse.textContent='REFUSE — KEEP FIRING';refuse.className='v11-refuse';actions.append(accept,refuse);overlay.classList.add('visible','offer');overlay.classList.toggle('sitting-duck-offer',sittingDuck);document.body.classList.add('v11-surrender-offer');
     offerPromise=new Promise(resolve=>{offerResolve=resolve;});
-    accept.addEventListener('click',e=>{e.stopPropagation();overlay.classList.remove('offer');document.body.classList.remove('v11-surrender-offer');const resolve=offerResolve;offerResolve=null;offerPromise=null;endCombat('surrender');resolve?.(true);});
-    refuse.addEventListener('click',e=>{e.stopPropagation();surrenderRefused=true;overlay.classList.remove('visible','offer');document.body.classList.remove('v11-surrender-offer');const resolve=offerResolve;offerResolve=null;offerPromise=null;refresh();resolve?.(false);});
+    accept.addEventListener('click',e=>{e.stopPropagation();overlay.classList.remove('offer','sitting-duck-offer');document.body.classList.remove('v11-surrender-offer');const resolve=offerResolve;offerResolve=null;offerPromise=null;endCombat('surrender',{surrenderType});resolve?.(true);});
+    refuse.addEventListener('click',e=>{e.stopPropagation();surrenderRefused=true;overlay.classList.remove('visible','offer','sitting-duck-offer');document.body.classList.remove('v11-surrender-offer');const resolve=offerResolve;offerResolve=null;offerPromise=null;refresh();resolve?.(false);});
     return offerPromise;
   }
 
@@ -88,7 +93,7 @@
     kicker.textContent='MANOEUVRE';title.textContent='FLEE?';copy.textContent='Break away from the engagement and end combat?';actions.innerHTML='';
     const confirm=document.createElement('button');confirm.textContent='FLEE — END COMBAT';confirm.className='v11-accept';
     const cancel=document.createElement('button');cancel.textContent='CANCEL';cancel.className='v11-refuse';actions.append(confirm,cancel);
-    overlay.classList.remove('offer');overlay.classList.add('visible','flee-offer');document.body.classList.add('v11-flee-offer');
+    overlay.classList.remove('offer','sitting-duck-offer');overlay.classList.add('visible','flee-offer');document.body.classList.add('v11-flee-offer');
     fleePromise=new Promise(resolve=>{fleeResolve=resolve;});
     confirm.addEventListener('click',e=>{e.stopPropagation();document.body.classList.remove('v11-flee-offer');const resolve=fleeResolve;fleeResolve=null;fleePromise=null;endCombat('fled');resolve?.(true);});
     cancel.addEventListener('click',e=>{e.stopPropagation();overlay.classList.remove('visible','flee-offer');document.body.classList.remove('v11-flee-offer');const resolve=fleeResolve;fleeResolve=null;fleePromise=null;refresh();resolve?.(false);});
@@ -100,7 +105,7 @@
     // All checks use the complete current plan, so two separate lethal targets can together trigger surrender.
     if(projectedEnemyGunsDestroyed())return offerSurrender('Your planned volley will silence every working cannon. They offer to strike their colours.');
     if(projectedEnemySunk())return offerSurrender('Your planned volley would leave more than half the lower deck destroyed. They offer surrender before you send them under.');
-    if(projectedSittingDuck())return offerSurrender('Your planned volley leaves them a sitting duck: no mast, no gun that can reach you, and no way to stop you finishing the ship.');
+    if(projectedSittingDuck())return offerSurrender('Your planned volley leaves them a sitting duck: no mast, no gun that can reach you, and no way to stop you finishing the ship.','sittingDuck');
     return false;
   }
 
@@ -119,7 +124,7 @@
         const accepted=await offerSurrender('Every working cannon is gone. The enemy offers to strike its colours.');if(accepted)return {combatEnded:true};
       }
       if(!surrenderRefused&&strategicSurrenderPossible()){
-        const accepted=await offerSurrender('Their mast is gone and no surviving gun can reach you. They are a sitting duck.');if(accepted)return {combatEnded:true};
+        const accepted=await offerSurrender('Their mast is gone and no surviving gun can reach you. They are a sitting duck.','sittingDuck');if(accepted)return {combatEnded:true};
       }
     }
     return {combatEnded:false};
