@@ -32,7 +32,15 @@ function getTargetsForWeapon(side, weaponEntity){
   return results;
 }
 
-function projectedEnemyImpact(intent){ return entityAtWorld(intent.lane, intent.targetWorld); }
+function enemyIntentInRange(intent){
+  const source = sourceEntity('enemy', intent.sourceId);
+  if(!source || !source.weapon) return false;
+  return Math.abs(intent.targetWorld - sourceWorld('enemy', source)) <= weapons[source.weapon].arc;
+}
+
+function projectedEnemyImpact(intent){
+  return enemyIntentInRange(intent) ? entityAtWorld(intent.lane, intent.targetWorld) : null;
+}
 function originalEnemyImpact(intent){
   const originalLeftmost = INITIAL_PLAYER_MAST_TRACK - PLAYER_MAST_LOCAL_COL;
   if(intent.lane==='mast') return intent.targetWorld===INITIAL_PLAYER_MAST_TRACK ? playerMast : null;
@@ -58,8 +66,7 @@ function roomHtml(r){
   const heading = r.weapon
     ? `<div class="weapon-heading">${iconMarkup(r.weapon)}<div><div class="room-title">${r.name}</div><div class="room-sub">${r.sub||''}</div></div></div>`
     : `<div class="room-title">${r.name}</div><div class="room-sub">${r.sub||''}</div>`;
-  const loading = r.weapon && r.loading ? `<div class="loading-badge" title="Loading — cannot fire this turn"><span>↻</span><b>LOADING</b></div>` : '';
-  return `${heading}${loading}<div class="pips">${pipsMarkup(r)}</div>${r.capacity?`<div class="room-capacity">${r.capacity}</div>`:''}`;
+  return `${heading}<div class="pips">${pipsMarkup(r)}</div>${r.capacity?`<div class="room-capacity">${r.capacity}</div>`:''}`;
 }
 
 function renderTrack(){
