@@ -1,4 +1,6 @@
 (() => {
+  if(state.movedThisTurn===undefined) state.movedThisTurn=false;
+
   function validateShipSetup(setup, side='ship'){
     const errors=[];
     if(!setup) return [`${side}: missing setup`];
@@ -54,13 +56,19 @@
     stage.style.minHeight=`${minHeight}px`;
   }
 
-  // Do not let the older movement wrappers clear plans when a movement attempt is
-  // illegal. A legal move is exactly one column from this turn's starting mast position.
+  function updateMovementButtons(){
+    const blocked=playerMast.hp<=0||state.movedThisTurn;
+    moveAft.disabled=blocked||state.playerMastTrack<=PLAYER_MAST_MIN;
+    moveFore.disabled=blocked||state.playerMastTrack>=PLAYER_MAST_MAX;
+  }
+
+  // Movement is an action, not simply a displacement cap: once the ship moves one
+  // room-width in either direction, it cannot move again (including back) this turn.
   function movementPermission(direction){
     if(playerMast.hp<=0) return {ok:false,message:'Mast destroyed'};
+    if(state.movedThisTurn) return {ok:false,message:'Movement used'};
     const target=state.playerMastTrack+direction;
     if(target<PLAYER_MAST_MIN||target>PLAYER_MAST_MAX) return {ok:false,message:null};
-    if(Math.abs(target-state.turnStartMast)>1) return {ok:false,message:'Movement used'};
     return {ok:true,message:null};
   }
   const previousMoveLeft=moveLeft;
@@ -72,7 +80,10 @@
       refresh();
       return;
     }
+    const before=state.playerMastTrack;
     previousMoveLeft();
+    if(state.playerMastTrack!==before) state.movedThisTurn=true;
+    refresh();
   };
   moveRight=function(){
     const permission=movementPermission(1);
@@ -81,7 +92,10 @@
       refresh();
       return;
     }
+    const before=state.playerMastTrack;
     previousMoveRight();
+    if(state.playerMastTrack!==before) state.movedThisTurn=true;
+    refresh();
   };
 
   function cloneSetup(id){
@@ -115,7 +129,34 @@
     current:{player:PLAYER_SHIP_SETUP,enemy:ENEMY_SHIP_SETUP,setup:COMBAT_SETUP}
   };
 
-  applyScalableLayout();
+  // v8 is the last refresh wrapper: it keeps scalable layout and movement controls
+  // correct after every earlier combat system redraw.
+  const previousRefresh=refresh;
+  refresh=function(){
+    previousRefresh();
+    applyScalableLayout();
+    updateMovementButtons();
+  };
+
+  let wasResolving=document.body.classList.contains('v3-resolving');
+  const turnObserver=new MutationObserver(()=>{
+    const now=document.body.classList.contains('v3-resolving');
+    if(wasResolving&&!now){
+      state.movedThisTurn=false;
+      state.turnStartMast=state.playerMastTrack;
+      refresh();
+    }
+    wasResolving=now;
+  });
+  turnObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
+
+  window.addEventListener('keydown',e=>{
+    if(e.code==='KeyR'&&!e.repeat){
+      state.movedThisTurn=false;
+      setTimeout(refresh,0);
+    }
+  },true);
+
   window.addEventListener('resize',applyScalableLayout);
   refresh();
 })();
