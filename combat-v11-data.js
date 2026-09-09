@@ -36,8 +36,8 @@ const SHIP_SETUPS = {
       {id:'e_rep', type:'gun', name:'REPEATER', sub:'Cannon', row:0, col:2, hp:3, weapon:'repeater'},
       {id:'e_long', type:'gun', name:'LONG GUN', row:0, col:3, hp:2, weapon:'long'},
       {id:'e_u1', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:0, hp:2},
-      {id:'e_carp', type:'carpenter', name:'???', revealName:'CARPENTER', hidden:true, row:1, col:1, hp:2, capacity:'Timber 3/4'},
-      {id:'e_u2', type:'magazine', name:'???', revealName:'MAGAZINE', hidden:true, row:1, col:2, hp:2},
+      {id:'e_u2', type:'magazine', name:'???', revealName:'MAGAZINE', hidden:true, row:1, col:1, hp:2},
+      {id:'e_carp', type:'carpenter', name:'???', revealName:'CARPENTER', hidden:true, row:1, col:2, hp:2, capacity:'Timber 3/4'},
       {id:'e_hold', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:3, hp:2, capacity:'Cargo 2/3'}
     ],
     openingIntents:[
