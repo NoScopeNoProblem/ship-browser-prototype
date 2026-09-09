@@ -1,0 +1,63 @@
+/* v14: lighter threat language, no blue dodge hatching, green repair targets */
+
+/* Blue hatching is removed completely. Dodged/prevented rooms return to their neutral board fill. */
+.room.dodged:not(.enemy-intended),.room.prevented:not(.enemy-intended){
+  background:rgba(255,255,255,.04)!important;
+}
+.mast-box.dodged:not(.enemy-intended),.mast-box.prevented:not(.enemy-intended){
+  background:rgba(255,255,255,.08)!important;
+}
+.dodged-mark,.dodge-v3,.evade-mark{display:none!important}
+
+/* Live incoming fire is a light red hatch plus a gentle border pulse. */
+.room.enemy-intended,.mast-box.enemy-intended,
+.room.enemy-intended.dodged,.mast-box.enemy-intended.dodged{
+  background:repeating-linear-gradient(-45deg,rgba(190,74,66,.17),rgba(190,74,66,.17) 5px,rgba(190,74,66,.035) 5px,rgba(190,74,66,.035) 12px)!important;
+}
+.room.v14-threat-active,.mast-box.v14-threat-active{
+  animation:v14ThreatPulse 1.45s ease-in-out infinite!important;
+}
+@keyframes v14ThreatPulse{
+  0%,100%{box-shadow:inset 0 0 0 2px rgba(183,61,54,.42)}
+  50%{box-shadow:inset 0 0 0 4px rgba(183,61,54,.78),0 0 0 2px rgba(183,61,54,.08)}
+}
+
+/* Lethal projected damage remains visibly more serious, but not dark enough to obscure room text. */
+.room.enemy-intended.v12-lethal-threat,.mast-box.enemy-intended.v12-lethal-threat,
+.room.enemy-intended.dodged.v12-lethal-threat,.mast-box.enemy-intended.dodged.v12-lethal-threat{
+  background:repeating-linear-gradient(-45deg,rgba(165,45,40,.27),rgba(165,45,40,.27) 5px,rgba(154,39,35,.055) 5px,rgba(154,39,35,.055) 9px)!important;
+}
+
+/* A moved-away original target gets a small tooltip instead of a hatch or pip symbol. */
+.v14-dodged-tip{
+  position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);z-index:96;
+  padding:5px 8px;border:1px solid rgba(55,91,112,.54);border-radius:4px;
+  background:rgba(240,247,250,.97);color:#355f79;
+  font:900 9px/1 Arial,sans-serif;letter-spacing:.09em;pointer-events:none;
+  animation:v14DodgedIn .28s ease-out both;
+}
+@keyframes v14DodgedIn{from{opacity:0;transform:translate(-50%,-42%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+/* There should only ever be one repaired-heart treatment: the persistent pip itself. */
+.v12-repair-pip,.v11-repair-pulse{display:none!important}
+
+/* Carpenter targeting is green; Magazine keeps its existing action colour language. */
+.room.v14-repair-source{
+  box-shadow:inset 0 0 0 3px rgba(47,127,77,.82)!important;
+  background:rgba(82,160,103,.10)!important;
+}
+.room.v14-repair-target{
+  box-shadow:inset 0 0 0 4px rgba(49,137,82,.88)!important;
+  background:rgba(91,177,113,.15)!important;
+}
+.room.v14-repair-target:hover{
+  box-shadow:inset 0 0 0 5px rgba(42,131,75,.98),0 0 0 2px rgba(72,158,96,.10)!important;
+}
+
+/* Generic room-edge rules supersede the old 3-column/4-column nth-child assumptions. */
+.ship-grid .room{border-right:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important}
+.ship-grid .room.v14-last-col{border-right:0!important}
+.ship-grid .room.v14-last-row{border-bottom:0!important}
+
+/* Threat rating is part of the compact enemy header rather than another panel. */
+.enemy-corner{white-space:nowrap}
