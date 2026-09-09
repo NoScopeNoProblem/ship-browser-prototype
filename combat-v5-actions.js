@@ -6,6 +6,7 @@
   function roomById(id){ return playerRooms.find(r=>r.id===id)||null; }
   function isUtilityRoom(room){ return !!room && (room.actionType==='repair'||room.actionType==='quickLoad'); }
   function wasUsed(id){ return utility.used[id]===currentTurn(); }
+  function weaponLoading(room){ return !!(room?.weapon && (window.combatTurn ? !combatTurn.isReady(room.id) : room.loading)); }
   function delta(a,b){ return {dx:b.col-a.col,dy:b.row-a.row}; }
   function carpenterReach(source,target){ const {dx,dy}=delta(source,target); return Math.abs(dx)<=1&&Math.abs(dy)<=1; }
   function magazineReach(source,target){ const {dx,dy}=delta(source,target); return target.id!==source.id&&Math.abs(dx)+Math.abs(dy)===1; }
@@ -14,7 +15,7 @@
   function eligibleTargets(sourceOrId){
     const source=typeof sourceOrId==='string'?roomById(sourceOrId):sourceOrId;if(!source)return[];
     if(source.actionType==='repair')return reachableRooms(source).filter(r=>r.hp>0&&r.hp<r.max);
-    if(source.actionType==='quickLoad')return reachableRooms(source).filter(r=>r.weapon&&r.hp>0&&r.loading);
+    if(source.actionType==='quickLoad')return reachableRooms(source).filter(r=>r.weapon&&r.hp>0&&weaponLoading(r));
     return[];
   }
   function arrowFor(source,target){
@@ -58,7 +59,6 @@
       if(stamp!==turn)return;const target=roomById(targetId);if(!target||target.hp<=0)return;
       const rollback=utility.rollback.find(a=>a.type==='reload'&&a.turn===turn&&a.targetId===targetId);if(!rollback||!wasUsed(rollback.sourceId))return;
       if(!combatTurn.isReady(targetId))combatTurn.setReady(targetId);
-      // Core clickability still reads room.loading, so keep the compatibility flag synchronized too.
       target.loading=false;
     });
   }
@@ -87,7 +87,7 @@
       if(target&&!inReach(source,target)){utility.selected=null;refresh();tooltip(roomEl,'Out of reach');return;}
       if(source?.actionType==='repair'&&target&&target.hp<=0){utility.selected=null;refresh();tooltip(roomEl,'Beyond repair');return;}
       if(source?.actionType==='repair'&&target&&target.hp>=target.max){utility.selected=null;refresh();tooltip(roomEl,'No repair needed');return;}
-      if(source?.actionType==='quickLoad'&&target&&(!target.weapon||!target.loading)){utility.selected=null;refresh();tooltip(roomEl,target?.weapon?'Already loaded':'Cannot Quick Load');return;}
+      if(source?.actionType==='quickLoad'&&target&&(!target.weapon||!weaponLoading(target))){utility.selected=null;refresh();tooltip(roomEl,target?.weapon?'Already loaded':'Cannot Quick Load');return;}
       const selected=utility.selected;if(id&&applyUtility(selected,id))return;utility.selected=null;refresh();return;
     }
     const room=id?roomById(id):null;if(room&&isUtilityRoom(room)){e.preventDefault();e.stopImmediatePropagation();selectUtility(id,roomEl);}
