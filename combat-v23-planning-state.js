@@ -145,6 +145,16 @@
     playerRooms.filter(r => r.weapon).forEach(room => { room.loading = !combatTurn.isReady(room.id); });
   }, true);
 
+  // Some older target feedback says only "Cancelled" when the player's shot is actually
+  // cancelling an ENEMY action. Make the subject explicit so it cannot be mistaken for the
+  // player's freshly Quick-Loaded cannon being cancelled.
+  function clarifyEnemyCancellationTooltips(){
+    enemyGrid.querySelectorAll('.range-tooltip').forEach(tip => {
+      if((tip.textContent || '').trim() === 'Cancelled') tip.textContent = 'Enemy action cancelled';
+    });
+  }
+  new MutationObserver(clarifyEnemyCancellationTooltips).observe(enemyGrid,{childList:true,subtree:true});
+
   // -------------------------------------------------------------------------
   // 3) Persistent development combat log.
   // Older turn code clears the visible log at resolution start and on R. Archive every line
@@ -211,6 +221,7 @@
     reassertQuickLoadedGuns();
     baseRefresh();
     reassertQuickLoadedGuns();
+    clarifyEnemyCancellationTooltips();
   };
 
   refresh();
