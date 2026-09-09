@@ -17,3 +17,7 @@ body.v27-planning-runtime .room[data-side="player"].v14-repair-target{
 
 /* The final Mast badge is always the single current manoeuvre state. */
 body.v27-planning-runtime .player-mast .v17-mast-action{z-index:124}
+
+body.v27-planning-runtime.v27-target-hold .v9-range-overlay,
+body.v27-planning-runtime.v27-target-hold .v4-arc-overlay,
+body.v27-planning-runtime.v27-target-hold #arcOverlay{display:none!important}
