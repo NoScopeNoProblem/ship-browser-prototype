@@ -154,7 +154,15 @@
   function logLine(html){const line=document.createElement('div');line.className='v3-log-line';line.innerHTML=html;logLines.appendChild(line);logLines.scrollTop=logLines.scrollHeight;}
   const colorSpan=(side,text)=>`<span class="v3-log-${side}">${text}</span>`;
   function center(el){const sr=stage.getBoundingClientRect(),r=el.getBoundingClientRect();return{x:r.left-sr.left+r.width/2,y:r.top-sr.top+r.height/2};}
-  function missPoint(intent){const pg=playerGrid.getBoundingClientRect(),sg=stage.getBoundingClientRect();if(intent.lane==='mast')return center(playerMastBox);const rows=Math.max(1,PLAYER_SHIP_SETUP.rows||1);return{x:worldColX(intent.targetWorld)+roomWidth()/2,y:pg.top-sg.top+(Number(intent.lane)+.5)*(pg.height/rows)};}
+  function missPoint(intent){
+    const pg=playerGrid.getBoundingClientRect(),sg=stage.getBoundingClientRect();
+    if(intent.lane==='mast'){
+      const mast=playerMastBox.getBoundingClientRect();
+      return {x:worldColX(intent.targetWorld)+roomWidth()/2,y:mast.top-sg.top+mast.height/2};
+    }
+    const rows=Math.max(1,PLAYER_SHIP_SETUP.rows||1);
+    return{x:worldColX(intent.targetWorld)+roomWidth()/2,y:pg.top-sg.top+(Number(intent.lane)+.5)*(pg.height/rows)};
+  }
   async function animateBall(fromEl,to,side,outcome){const a=center(fromEl),b=to instanceof Element?center(to):to;const ball=document.createElement('div');ball.className=`v3-ball ${side}`;ball.style.left=`${a.x}px`;ball.style.top=`${a.y}px`;projectileLayer.appendChild(ball);cannonSound();await wait(20);ball.style.transform=`translate(${b.x-a.x}px,${b.y-a.y}px)`;await wait(360);if(outcome==='miss')splashSound();else splinterSound();ball.style.opacity='0';await wait(90);ball.remove();}
   async function floatNote(el,text,cls=''){const sr=stage.getBoundingClientRect(),r=el.getBoundingClientRect();const note=document.createElement('div');note.className=`v3-resolve-note ${cls}`;note.textContent=text;note.style.left=`${r.left-sr.left+r.width/2}px`;note.style.top=`${r.top-sr.top+r.height/2}px`;floatLayer.appendChild(note);await wait(520);note.remove();}
   function applyDamage(entity,amount){const before=entity.hp;entity.hp=Math.max(0,entity.hp-amount);return before>0&&entity.hp===0;}
