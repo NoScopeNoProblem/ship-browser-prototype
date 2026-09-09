@@ -1,57 +1,131 @@
-const TRACK_COLS = 7;
+// Data-driven combat catalogue. Runtime systems still use the legacy global names below,
+// but those values are now derived from archetypes / ship setups rather than a fixed board.
+const WEAPON_ARCHETYPES = {
+  standard: {
+    name:'Standard Cannon', range:1, arc:1, damage:1, icon:'•→',
+    cadence:{initialLoadTurns:0, reloadTurns:1, shotsBeforeReload:1}
+  },
+  heavy: {
+    name:'Heavy Cannon', range:1, arc:1, damage:2, icon:'◆→',
+    cadence:{initialLoadTurns:1, reloadTurns:1, shotsBeforeReload:1}
+  },
+  repeater: {
+    name:'Repeater Cannon', range:1, arc:1, damage:1, icon:'≡→',
+    cadence:{initialLoadTurns:0, reloadTurns:1, shotsBeforeReload:2}
+  },
+  long: {
+    name:'Long Gun', range:2, arc:2, damage:1, icon:'◎→',
+    cadence:{initialLoadTurns:0, reloadTurns:1, shotsBeforeReload:1}
+  },
+  chain: {
+    name:'Chain Shot', range:0, arc:0, damage:1, icon:'⊙⛓',
+    cadence:{initialLoadTurns:0, reloadTurns:1, shotsBeforeReload:1}, mastDamage:2
+  },
+  carronade: {
+    name:'Carronade', range:0, arc:0, damage:2, icon:'✦→',
+    cadence:{initialLoadTurns:0, reloadTurns:1, shotsBeforeReload:1}
+  }
+};
+
+const ROOM_ARCHETYPES = {
+  gun:       {kind:'gun', actionType:'fire'},
+  magazine:  {kind:'magazine', actionType:'quickLoad', explosionDamage:1},
+  carpenter: {kind:'carpenter', actionType:'repair', repairAmount:1},
+  storage:   {kind:'storage', actionType:null},
+  unknown:   {kind:'unknown', actionType:null}
+};
+
+const SHIP_SETUPS = {
+  wayward: {
+    id:'wayward', name:'THE WAYWARD', columns:3, rows:2, mastColumn:1, mastHp:3,
+    rooms:[
+      {id:'p_std', type:'gun', name:'STANDARD', sub:'Gun Deck', row:0, col:0, hp:3, weapon:'standard', capacity:'2 loaded'},
+      {id:'p_mag', type:'magazine', name:'MAGAZINE', row:0, col:1, hp:2, capacity:'6 / 6'},
+      {id:'p_heavy', type:'gun', name:'HEAVY', sub:'Gun Deck', row:0, col:2, hp:3, weapon:'heavy'},
+      {id:'p_hold1', type:'storage', name:'GENERAL HOLD', row:1, col:0, hp:2, capacity:'2 / 3'},
+      {id:'p_carp', type:'carpenter', name:'CARPENTER', row:1, col:1, hp:2, capacity:'Timber 4/4'},
+      {id:'p_hold2', type:'storage', name:'GENERAL HOLD', row:1, col:2, hp:2, capacity:'1 / 3'}
+    ]
+  },
+  ironGull: {
+    id:'ironGull', name:'THE IRON GULL', columns:4, rows:2, mastColumn:1, mastHp:3,
+    rooms:[
+      {id:'e_std', type:'gun', name:'STANDARD', sub:'Cannon', row:0, col:0, hp:2, weapon:'standard'},
+      {id:'e_heavy', type:'gun', name:'HEAVY', sub:'Cannon', row:0, col:1, hp:4, weapon:'heavy'},
+      {id:'e_rep', type:'gun', name:'REPEATER', sub:'Cannon', row:0, col:2, hp:3, weapon:'repeater'},
+      {id:'e_long', type:'gun', name:'LONG GUN', row:0, col:3, hp:2, weapon:'long'},
+      {id:'e_u1', type:'unknown', name:'UNKNOWN', revealName:'GENERAL HOLD', hidden:true, row:1, col:0, hp:2},
+      {id:'e_carp', type:'carpenter', name:'CARPENTER', row:1, col:1, hp:2, capacity:'Timber 3/4'},
+      {id:'e_u2', type:'magazine', name:'UNKNOWN', revealName:'MAGAZINE', hidden:true, row:1, col:2, hp:2},
+      {id:'e_hold', type:'storage', name:'HOLD', row:1, col:3, hp:2, capacity:'Cargo 2/3'}
+    ],
+    openingIntents:[
+      {sourceId:'e_std', targetId:'p_hold1'},
+      {sourceId:'e_heavy', targetId:'p_heavy'},
+      {sourceId:'e_rep', targetId:'p_mag'},
+      {sourceId:'e_long', targetId:'p_carp'}
+    ]
+  }
+};
+
+const COMBAT_SETUP = {
+  trackColumns:7,
+  playerShip:'wayward',
+  enemyShip:'ironGull',
+  playerMastTrack:3,
+  enemyMastTrack:3
+};
+
+const weapons = WEAPON_ARCHETYPES;
+const PLAYER_SHIP_SETUP = SHIP_SETUPS[COMBAT_SETUP.playerShip];
+const ENEMY_SHIP_SETUP = SHIP_SETUPS[COMBAT_SETUP.enemyShip];
+
+function instantiateRoom(def){
+  const archetype = ROOM_ARCHETYPES[def.type] || ROOM_ARCHETYPES.unknown;
+  const weaponDef = def.weapon ? weapons[def.weapon] : null;
+  const initialLoadTurns = weaponDef?.cadence?.initialLoadTurns || 0;
+  return {
+    ...archetype,
+    ...def,
+    max:def.max ?? def.hp,
+    revealed:def.hidden ? false : true,
+    isMagazine:archetype.kind === 'magazine',
+    loading:!!weaponDef && initialLoadTurns > 0
+  };
+}
+
+const TRACK_COLS = COMBAT_SETUP.trackColumns;
 const TRACK_LEFT = 56;
 const ROOM_W = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--roomW'));
 const ROOM_H = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--roomH'));
 
-// Both ships begin centered by their main-mast column.
-const ENEMY_LEFTMOST = 2;
-const ENEMY_MAST_COL = 1;
-const ENEMY_MAST_TRACK = ENEMY_LEFTMOST + ENEMY_MAST_COL; // middle segment = 3
-const PLAYER_MAST_LOCAL_COL = 1;
-const INITIAL_PLAYER_MAST_TRACK = 3;
-const PLAYER_MAST_MIN = 1;
-const PLAYER_MAST_MAX = 5;
+const ENEMY_MAST_TRACK = COMBAT_SETUP.enemyMastTrack;
+const ENEMY_MAST_COL = ENEMY_SHIP_SETUP.mastColumn;
+const ENEMY_LEFTMOST = ENEMY_MAST_TRACK - ENEMY_MAST_COL;
+const PLAYER_MAST_LOCAL_COL = PLAYER_SHIP_SETUP.mastColumn;
+const INITIAL_PLAYER_MAST_TRACK = COMBAT_SETUP.playerMastTrack;
+const PLAYER_MAST_MIN = PLAYER_MAST_LOCAL_COL;
+const PLAYER_MAST_MAX = TRACK_COLS - (PLAYER_SHIP_SETUP.columns - PLAYER_MAST_LOCAL_COL);
 
-const weapons = {
-  standard: {name:'Standard Cannon', arc:1, damage:1, icon:'•→'},
-  heavy: {name:'Heavy Cannon', arc:1, damage:2, icon:'◆→'},
-  repeater: {name:'Repeater Cannon', arc:1, damage:1, icon:'≡→'},
-  long: {name:'Long Gun', arc:2, damage:1, icon:'◎→'},
-  chain: {name:'Chain Shot', arc:0, damage:1, icon:'⊙⛓'},
-  carronade: {name:'Carronade', arc:0, damage:2, icon:'✦→'}
-};
+const enemyRooms = ENEMY_SHIP_SETUP.rooms.map(instantiateRoom);
+const playerRooms = PLAYER_SHIP_SETUP.rooms.map(instantiateRoom);
+const enemyMast = {id:'e_mast', name:'Mast', kind:'mast', col:ENEMY_MAST_TRACK, hp:ENEMY_SHIP_SETUP.mastHp, max:ENEMY_SHIP_SETUP.mastHp};
+const playerMast = {id:'p_mast', name:'Mast', kind:'mast', localCol:PLAYER_MAST_LOCAL_COL, hp:PLAYER_SHIP_SETUP.mastHp, max:PLAYER_SHIP_SETUP.mastHp};
 
-const enemyRooms = [
-  {id:'e_std', name:'STANDARD', sub:'Cannon', row:0, col:0, hp:2, max:2, weapon:'standard'},
-  {id:'e_heavy', name:'HEAVY', sub:'Cannon', row:0, col:1, hp:4, max:4, weapon:'heavy', loading:true},
-  {id:'e_rep', name:'REPEATER', sub:'Cannon', row:0, col:2, hp:3, max:3, weapon:'repeater'},
-  {id:'e_long', name:'LONG GUN', sub:'', row:0, col:3, hp:2, max:2, weapon:'long'},
-  {id:'e_u1', name:'UNKNOWN', revealName:'GENERAL HOLD', hidden:true, revealed:false, sub:'', row:1, col:0, hp:2, max:2},
-  {id:'e_carp', name:'CARPENTER', sub:'', row:1, col:1, hp:2, max:2, capacity:'Timber 3/4'},
-  {id:'e_u2', name:'UNKNOWN', revealName:'MAGAZINE', hidden:true, revealed:false, isMagazine:true, sub:'', row:1, col:2, hp:2, max:2},
-  {id:'e_hold', name:'HOLD', sub:'', row:1, col:3, hp:2, max:2, capacity:'Cargo 2/3'}
-];
-const enemyMast = {id:'e_mast', name:'Mast', kind:'mast', col:ENEMY_MAST_TRACK, hp:3, max:3};
-
-const playerRooms = [
-  {id:'p_std', name:'STANDARD', sub:'Gun Deck', row:0, col:0, hp:3, max:3, weapon:'standard', capacity:'2 loaded'},
-  {id:'p_mag', name:'MAGAZINE', isMagazine:true, sub:'', row:0, col:1, hp:2, max:2, capacity:'6 / 6'},
-  {id:'p_heavy', name:'HEAVY', sub:'Gun Deck', row:0, col:2, hp:3, max:3, weapon:'heavy', loading:true},
-  {id:'p_hold1', name:'GENERAL HOLD', sub:'', row:1, col:0, hp:2, max:2, capacity:'2 / 3'},
-  {id:'p_carp', name:'CARPENTER', sub:'', row:1, col:1, hp:2, max:2, capacity:'Timber 4/4'},
-  {id:'p_hold2', name:'GENERAL HOLD', sub:'', row:1, col:2, hp:2, max:2, capacity:'1 / 3'}
-];
-const playerMast = {id:'p_mast', name:'Mast', kind:'mast', localCol:PLAYER_MAST_LOCAL_COL, hp:3, max:3};
-
-// Enemy intents are fixed in world-space. Heavy is loading this turn, so it has no intent.
-const enemyIntents = [
-  {sourceId:'e_std', lane:1, targetWorld:2, damage:1},
-  {sourceId:'e_rep', lane:0, targetWorld:3, damage:1},
-  {sourceId:'e_long', lane:1, targetWorld:3, damage:1}
-];
+function makeOpeningIntent(def){
+  const source = enemyRooms.find(r => r.id === def.sourceId);
+  const target = def.targetId === playerMast.id ? playerMast : playerRooms.find(r => r.id === def.targetId);
+  if(!source || !source.weapon || !target) return null;
+  const damage = def.damage ?? weapons[source.weapon].damage;
+  if(target.kind === 'mast') return {sourceId:source.id, lane:'mast', targetWorld:INITIAL_PLAYER_MAST_TRACK, damage, logicalTargetId:target.id};
+  const playerLeft = INITIAL_PLAYER_MAST_TRACK - PLAYER_MAST_LOCAL_COL;
+  return {sourceId:source.id, lane:target.row, targetWorld:playerLeft + target.col, damage, logicalTargetId:target.id};
+}
+const enemyIntents = (ENEMY_SHIP_SETUP.openingIntents || []).map(makeOpeningIntent).filter(Boolean);
 
 const state = {
   playerMastTrack: INITIAL_PLAYER_MAST_TRACK,
+  turnStartMast: INITIAL_PLAYER_MAST_TRACK,
   hoveredWeapon: null,
   hoverIntent: null,
   overview: null,
@@ -75,3 +149,6 @@ const weaponInfo = document.getElementById('weaponInfo');
 const targetInfo = document.getElementById('targetInfo');
 const moveAft = document.getElementById('moveAft');
 const moveFore = document.getElementById('moveFore');
+
+// Public catalogue used by later prototype tooling / generated test matchups.
+window.combatCatalog = {weapons:WEAPON_ARCHETYPES, roomTypes:ROOM_ARCHETYPES, shipSetups:SHIP_SETUPS, active:COMBAT_SETUP};
