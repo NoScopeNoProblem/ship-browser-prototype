@@ -62,8 +62,6 @@
     moveFore.disabled=blocked||state.playerMastTrack>=PLAYER_MAST_MAX;
   }
 
-  // Movement is an action, not simply a displacement cap: once the ship moves one
-  // room-width in either direction, it cannot move again (including back) this turn.
   function movementPermission(direction){
     if(playerMast.hp<=0) return {ok:false,message:'Mast destroyed'};
     if(state.movedThisTurn) return {ok:false,message:'Movement used'};
@@ -98,6 +96,46 @@
     refresh();
   };
 
+  function worldForFriendlyTarget(target){
+    return target.kind==='mast' ? state.playerMastTrack : playerWorldCol(target.col);
+  }
+
+  // A generated enemy setup does not need hand-authored target ids to function. Existing
+  // authored intents are preserved; missing gun intents are filled deterministically from
+  // currently living, in-range targets. Chain weapons prefer a mast when one is available.
+  function ensureEnemyIntentCoverage(){
+    enemyRooms.filter(r=>r.weapon&&r.hp>0).forEach(source=>{
+      if(enemyIntents.some(i=>i.sourceId===source.id)) return;
+      const candidates=getTargetsForWeapon('enemy',source).filter(t=>t&&t.hp>0);
+      if(!candidates.length) return;
+
+      let target=null;
+      if(source.weapon==='chain') target=candidates.find(t=>t.kind==='mast')||null;
+      if(!target){
+        const sourceCol=sourceWorld('enemy',source);
+        target=candidates.slice().sort((a,b)=>{
+          const ad=Math.abs(worldForFriendlyTarget(a)-sourceCol);
+          const bd=Math.abs(worldForFriendlyTarget(b)-sourceCol);
+          if(ad!==bd) return ad-bd;
+          const am=a.kind==='mast'?1:0, bm=b.kind==='mast'?1:0;
+          if(am!==bm) return am-bm;
+          const ar=Number.isFinite(a.row)?a.row:99, br=Number.isFinite(b.row)?b.row:99;
+          if(ar!==br) return ar-br;
+          return String(a.id).localeCompare(String(b.id));
+        })[0];
+      }
+
+      const intent={
+        sourceId:source.id,
+        damage:weapons[source.weapon].damage,
+        logicalTargetId:target.id,
+        lane:target.kind==='mast'?'mast':target.row,
+        targetWorld:worldForFriendlyTarget(target)
+      };
+      enemyIntents.push(intent);
+    });
+  }
+
   function cloneSetup(id){
     const setup=SHIP_SETUPS[id];
     return setup ? structuredClone(setup) : null;
@@ -119,18 +157,18 @@
 
   const problems=validateMatchup();
   if(problems.length) console.warn('Combat setup validation:',problems);
+  ensureEnemyIntentCoverage();
 
   window.combatFactory={
     validateShipSetup,
     validateMatchup,
     cloneSetup,
     weaponSummary,
+    ensureEnemyIntentCoverage,
     listShipSetups:()=>Object.keys(SHIP_SETUPS),
     current:{player:PLAYER_SHIP_SETUP,enemy:ENEMY_SHIP_SETUP,setup:COMBAT_SETUP}
   };
 
-  // v8 is the last refresh wrapper: it keeps scalable layout and movement controls
-  // correct after every earlier combat system redraw.
   const previousRefresh=refresh;
   refresh=function(){
     previousRefresh();
@@ -144,6 +182,7 @@
     if(wasResolving&&!now){
       state.movedThisTurn=false;
       state.turnStartMast=state.playerMastTrack;
+      ensureEnemyIntentCoverage();
       refresh();
     }
     wasResolving=now;
