@@ -1,6 +1,7 @@
 (() => {
-  // v20: explicit damage typing + turn-snapshotted Mast aim feedback.
-  // Damage markers now come from the damage model itself, not from a late DOM recolour pass.
+  // v20: explicit damage typing + pure Mast MISS presentation.
+  // This module no longer owns, snapshots, or observes movement state. Mast misses are derived
+  // directly from the locked enemy intent plus the current alignment every time refresh runs.
 
   const DAMAGE_TYPES = Object.freeze({
     cannon: Object.freeze({id:'cannon', symbol:'⌖', className:'hit intent-crosshair damage-type-cannon', title:'Cannon fire'}),
@@ -65,8 +66,7 @@
     renderIntentPips
   };
 
-  // Route normal intent pip rendering through the typed damage model. renderShips() still uses
-  // ordinary hearts because it represents committed HP, not projected damage.
+  // Route projected pips through the typed damage model. Committed HP remains ordinary hearts.
   let damageRenderContext=null;
   const basePipsMarkup=pipsMarkup;
   pipsMarkup=function(entity,hits=0,dodges=0,prevented=0){
@@ -90,30 +90,8 @@
   };
 
   // ---- Mast MISS feedback -------------------------------------------------
-  // Snapshot the enemy's Mast aim when the player turn opens. This survives later retarget/UI
-  // refreshes, so moving away always has an unambiguous original world-column to display.
-  let aimTurn=null;
-  let aimStart=null;
-  const mastAimSnapshot=new Map();
-
-  function currentTurn(){return window.combatTurn?.turn||1;}
-  function planningStart(){return state.turnStartMast??window.combatTurn?.startMast??state.playerMastTrack;}
-
-  function captureMastAims(force=false){
-    if(window.combatEnded||window.combatTurn?.resolving)return;
-    const turn=currentTurn(),start=planningStart();
-    if(!force&&aimTurn===turn&&aimStart===start)return;
-    mastAimSnapshot.clear();
-    enemyIntents.forEach(intent=>{
-      const source=sourceEntity('enemy',intent.sourceId);
-      if(!source||!source.weapon||source.hp<=0)return;
-      const aimedAtMast=intent.logicalTargetId===playerMast.id||intent.lane==='mast';
-      if(!aimedAtMast)return;
-      mastAimSnapshot.set(intent.sourceId,{world:Number.isFinite(intent.targetWorld)?intent.targetWorld:start,turn});
-    });
-    aimTurn=turn;aimStart=start;
-  }
-
+  // No private aim snapshot. The enemy intent itself is the locked aim for the turn; current
+  // alignment determines whether that world-space shot now misses the Mast.
   function clearMastMissMarkers(){
     document.querySelectorAll('.v20-mast-miss-marker,.v19-mast-miss-marker,.v18-mast-miss-marker').forEach(n=>n.remove());
   }
@@ -123,62 +101,47 @@
     catch{return false;}
   }
 
+  function mastMissIntents(){
+    if(window.combatEnded||window.combatTurn?.resolving||document.body.classList.contains('v11-intent-preview-active'))return [];
+    return enemyIntents.filter(intent=>{
+      if(intent?.inactive)return false;
+      const source=sourceEntity('enemy',intent.sourceId);
+      if(!source||source.hp<=0||!source.weapon||!window.combatTurn?.isReady(source.id)||sourceCancelledByPlan(source))return false;
+      const aimedAtMast=intent.logicalTargetId===playerMast.id||intent.lane==='mast';
+      if(!aimedAtMast)return false;
+      // If the current Mast still occupies the locked world-space aim, it is not a miss.
+      return !projectedEnemyImpact(intent);
+    });
+  }
+
   function renderMastMissMarkers(){
     clearMastMissMarkers();
-    if(window.combatEnded||window.combatTurn?.resolving||document.body.classList.contains('v11-intent-preview-active'))return;
-    captureMastAims();
-    if(!mastAimSnapshot.size)return;
-
+    const misses=mastMissIntents();
+    if(!misses.length)return;
     const sr=stage.getBoundingClientRect(),pg=playerGrid.getBoundingClientRect();
     const baseY=pg.top-sr.top-26;
-    let stackIndex=0;
-
-    mastAimSnapshot.forEach((aim,sourceId)=>{
-      if(aim.turn!==currentTurn()||state.playerMastTrack===aim.world)return;
-      const source=sourceEntity('enemy',sourceId);
-      if(!source||source.hp<=0||!source.weapon||!window.combatTurn?.isReady(source.id)||sourceCancelledByPlan(source))return;
-
-      // The miss belongs to the empty world-column where the Mast was aimed at, immediately
-      // above the player's room row and beside the Mast's new position.
-      stage.querySelectorAll(`.miss-marker[data-source-id="${sourceId}"]`).forEach(n=>n.remove());
+    misses.forEach((intent,index)=>{
+      const source=sourceEntity('enemy',intent.sourceId);if(!source)return;
+      stage.querySelectorAll(`.miss-marker[data-source-id="${source.id}"]`).forEach(n=>n.remove());
       const marker=document.createElement('div');
       marker.className='v20-mast-miss-marker';
-      marker.dataset.sourceId=sourceId;
-      marker.style.left=`${worldColX(aim.world)+ROOM_W()/2}px`;
-      marker.style.top=`${baseY-stackIndex*32}px`;
+      marker.dataset.sourceId=source.id;
+      marker.style.left=`${worldColX(intent.targetWorld)+ROOM_W()/2}px`;
+      marker.style.top=`${baseY-index*32}px`;
       marker.innerHTML=`${iconMarkup(source.weapon,enemySuffix[source.id]||'',true)}<b>MISS</b>`;
       marker.title=`${weapons[source.weapon]?.name||'Enemy cannon'} missed the Mast after manoeuvre`;
-      marker.addEventListener('mouseenter',()=>beginIntentHover('enemy',sourceId));
+      marker.addEventListener('mouseenter',()=>beginIntentHover('enemy',source.id));
       marker.addEventListener('mouseleave',endIntentHover);
       stage.appendChild(marker);
-      stackIndex++;
     });
   }
 
   const baseRefresh=refresh;
   refresh=function(){
-    // A new turn can be observed before all older MutationObservers finish retargeting; defer a
-    // forced snapshot one frame when the turn number changes, then render from that snapshot.
-    if(aimTurn!==currentTurn()) requestAnimationFrame(()=>{captureMastAims(true);renderMastMissMarkers();});
     baseRefresh();
     renderMastMissMarkers();
   };
 
-  const bodyObserver=new MutationObserver(()=>{
-    if(!document.body.classList.contains('v3-resolving')&&!document.body.classList.contains('v11-intent-preview-active')){
-      requestAnimationFrame(()=>{captureMastAims(true);renderMastMissMarkers();});
-    }
-  });
-  bodyObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
-
-  moveAft.addEventListener('click',()=>requestAnimationFrame(renderMastMissMarkers));
-  moveFore.addEventListener('click',()=>requestAnimationFrame(renderMastMissMarkers));
-  window.addEventListener('keydown',e=>{
-    if(e.code==='ArrowLeft'||e.code==='ArrowRight'||e.code==='KeyR')requestAnimationFrame(renderMastMissMarkers);
-  },true);
-  window.addEventListener('resize',()=>requestAnimationFrame(renderMastMissMarkers));
   window.addEventListener('combat-ended',clearMastMissMarkers);
-
-  captureMastAims(true);
   refresh();
 })();
