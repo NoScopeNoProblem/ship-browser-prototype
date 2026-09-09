@@ -1,0 +1,19 @@
+/* v27: one authoritative current-alignment planning view. */
+
+/* Z/X now communicate committed target relationships, not the older broad range polygons.
+   Old key-repeat listeners may still run, but their overlays are deliberately suppressed. */
+body.v27-planning-runtime .v9-range-overlay{display:none!important}
+body.v27-planning-runtime.v9-range-held .v4-arc-overlay,
+body.v27-planning-runtime.v9-range-held #arcOverlay{display:none!important}
+
+/* Canonical utility selection always wins over danger fills; danger remains on the border/pips. */
+body.v27-planning-runtime .room[data-side="player"].utility-selected,
+body.v27-planning-runtime .room[data-side="player"].utility-target,
+body.v27-planning-runtime .room[data-side="player"].v14-repair-source,
+body.v27-planning-runtime .room[data-side="player"].v14-repair-target{
+  background:rgba(190,236,199,.34)!important;
+  background-image:none!important;
+}
+
+/* The final Mast badge is always the single current manoeuvre state. */
+body.v27-planning-runtime .player-mast .v17-mast-action{z-index:124}
