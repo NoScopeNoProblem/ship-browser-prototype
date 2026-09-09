@@ -46,8 +46,12 @@
 
   function syncButton(){
     const id=selectedCustomId();
-    button.hidden=!id;
-    button.dataset.shipId=id||'';
+    const shouldHide=!id;
+    // Do not rewrite the hidden attribute unless its value actually changes. The previous
+    // implementation observed this attribute and then rewrote it from inside the observer,
+    // creating an endless MutationObserver microtask loop that prevented the selector from painting.
+    if(button.hidden!==shouldHide)button.hidden=shouldHide;
+    if((button.dataset.shipId||'')!==(id||''))button.dataset.shipId=id||'';
   }
 
   function fallbackMatch(last,id){
@@ -80,14 +84,14 @@
     const last=readJSON(MATCH_KEY,null);
     if(last&&fallbackMatch(last,id))writeJSON(MATCH_KEY,last);
 
-    // Reload through the normal selector initialisation so no private editor state can keep a
-    // deleted template alive in either list or preview.
     window.location.reload();
   });
 
+  // The selector already re-renders synchronously in response to user actions. A deferred sync
+  // after those actions is enough; no DOM observer is needed and this module never participates
+  // in the selector's render lifecycle.
   document.addEventListener('click',()=>setTimeout(syncButton,0),true);
-  new MutationObserver(syncButton).observe(document.getElementById('shipEditor'),{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});
-  new MutationObserver(syncButton).observe(document.getElementById('playerShipList'),{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
-  new MutationObserver(syncButton).observe(document.getElementById('enemyShipList'),{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+  document.addEventListener('input',()=>setTimeout(syncButton,0),true);
+  window.addEventListener('pageshow',syncButton);
   syncButton();
 })();
