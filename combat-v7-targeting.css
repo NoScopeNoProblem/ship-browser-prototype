@@ -1,0 +1,64 @@
+/* v7 targeting/readiness cues */
+.room.destroyed-room,.mast-box.destroyed-room{
+  filter:grayscale(.82);
+  color:rgba(38,52,54,.52)!important;
+  background:
+    repeating-linear-gradient(-45deg,rgba(65,74,75,.14),rgba(65,74,75,.14) 6px,rgba(235,226,207,.52) 6px,rgba(235,226,207,.52) 12px)!important;
+}
+.room.destroyed-room .weapon-icon,.room.destroyed-room .room-sub,.room.destroyed-room .room-capacity{opacity:.48}
+.room.destroyed-room:hover,.mast-box.destroyed-room:hover{box-shadow:none!important}
+
+/* Friendly rooms with an available action get a small, persistent gold corner cue. */
+.room[data-side="player"].action-ready::after{
+  content:'◆';
+  position:absolute;
+  right:5px;
+  top:26px;
+  z-index:19;
+  color:#b97b20;
+  font:700 9px/1 Arial,sans-serif;
+  text-shadow:0 1px 0 rgba(255,255,255,.7);
+  pointer-events:none;
+}
+.room[data-side="player"].action-ready:not(.enemy-intended):not(.dodged):not(.prevented){
+  box-shadow:inset 0 -2px 0 rgba(185,123,32,.42);
+}
+
+/* Target selection: candidates stay subtle until hovered, then read very clearly. */
+.room[data-side="enemy"].target-mode-candidate,.mast-box.target-mode-candidate{cursor:crosshair}
+.room[data-side="enemy"].target-mode-candidate::after{
+  content:'⌖';
+  position:absolute;
+  right:7px;
+  top:7px;
+  z-index:20;
+  color:rgba(60,112,151,.58);
+  font:700 13px/1 Arial,sans-serif;
+  pointer-events:none;
+}
+.room[data-side="enemy"].target-hover-valid,.mast-box.target-hover-valid{
+  box-shadow:inset 0 0 0 4px rgba(55,112,151,.96)!important;
+  background-color:rgba(78,128,165,.24)!important;
+}
+.room[data-side="enemy"].target-hover-valid::before{
+  content:'TARGET';
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  z-index:21;
+  padding:4px 6px;
+  border:1px solid rgba(55,112,151,.8);
+  background:rgba(241,237,223,.94);
+  color:#315f7e;
+  font:800 9px/1 Arial,sans-serif;
+  letter-spacing:.08em;
+  pointer-events:none;
+}
+.mast-box.target-hover-valid::after{
+  content:'TARGET';
+  position:absolute;
+  left:50%;top:50%;transform:translate(-50%,-50%);
+  z-index:21;padding:3px 5px;background:rgba(241,237,223,.94);color:#315f7e;border:1px solid rgba(55,112,151,.8);
+  font:800 8px/1 Arial,sans-serif;letter-spacing:.07em;pointer-events:none;
+}
