@@ -76,6 +76,7 @@
     if(resolving()||state.exterior)return;const roomEl=e.target.closest&&e.target.closest('.room[data-side="player"]'),id=roomEl?roomEl.dataset.id:null;
     if(utility.selected){
       e.preventDefault();e.stopImmediatePropagation();const source=roomById(utility.selected),target=id?roomById(id):null;
+      if(target&&source&&target.id===source.id){utility.selected=null;refresh();return;}
       if(target&&!inReach(source,target)){utility.selected=null;refresh();tooltip(roomEl,'Out of reach');return;}
       if(source?.actionType==='repair'&&target&&target.hp<=0){utility.selected=null;refresh();tooltip(roomEl,'Beyond repair');return;}
       if(source?.actionType==='repair'&&target&&target.hp>=target.max){utility.selected=null;refresh();tooltip(roomEl,'No repair needed');return;}
