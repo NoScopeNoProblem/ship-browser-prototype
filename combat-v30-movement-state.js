@@ -24,15 +24,11 @@
   const movedThisTurn=()=>state.playerMastTrack!==startMast();
   const hasFiringPlan=()=>Object.keys(state.playerIntents||{}).length>0;
 
-  // There used to be several writable copies of the turn-start alignment. That let a late observer
-  // silently redefine "start" after the ship moved. Keep the old property only as a read bridge.
   Object.defineProperty(state,'turnStartMast',{
     configurable:true,
     enumerable:true,
     get(){return startMast();},
-    set(value){
-      if(Number(value)!==Number(startMast()))movement.legacyStartWrites++;
-    }
+    set(value){if(Number(value)!==Number(startMast()))movement.legacyStartWrites++;}
   });
   Object.defineProperty(state,'movedThisTurn',{
     configurable:true,
@@ -65,18 +61,11 @@
     return target>=b.min&&target<=b.max&&target>=PLAYER_MAST_MIN&&target<=PLAYER_MAST_MAX;
   }
 
-  function showBlocked(reason){
-    if(reason)showRoomTooltip(playerMastBox,reason);
-    refresh();
-  }
+  function showBlocked(reason){if(reason)showRoomTooltip(playerMastBox,reason);refresh();}
 
   function emitAlignmentChange(previous,current){
     window.dispatchEvent(new CustomEvent('combat-alignment-changed',{detail:{
-      turn:combatTurn.turn,
-      startMast:startMast(),
-      previousMast:previous,
-      currentMast:current,
-      moved:movedThisTurn()
+      turn:combatTurn.turn,startMast:startMast(),previousMast:previous,currentMast:current,moved:movedThisTurn()
     }}));
   }
 
@@ -90,8 +79,6 @@
     }
     if(!canStep(direction)){showBlocked('Movement used');return;}
 
-    // This is the complete movement mutation: current alignment only. No utility state, cadence,
-    // incoming intent, damage prediction, or turn-start value is edited here.
     const previous=state.playerMastTrack;
     clearPlayerTurnPlans();
     window.combatDodgeFeedback?.reset?.();
@@ -100,7 +87,6 @@
     refresh();
   }
 
-  // Retire the accumulated move wrappers. Existing controls resolve these globals at click/key time.
   moveLeft=function(){move(-1);};
   moveRight=function(){move(1);};
 
@@ -152,15 +138,8 @@
     });
   }
 
-  // v30 is intentionally loaded after the general planning renderer. It is the last/only owner
-  // of Mast READY/USED/RESETTING presentation and movement-control reachability.
   const baseRefresh=refresh;
-  refresh=function(){
-    baseRefresh();
-    syncAnchor();
-    decorateMast();
-    decorateTrackAndButtons();
-  };
+  refresh=function(){baseRefresh();syncAnchor();decorateMast();decorateTrackAndButtons();};
 
   const phaseObserver=new MutationObserver(()=>{
     const now=combatTurn.resolving;
@@ -175,6 +154,19 @@
   });
   phaseObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
 
+  function resetSails(){
+    if(playerMast.hp<=0||!movement.cooldown)return false;
+    movement.cooldown=false;
+    movement.pendingCooldown=false;
+    refresh();
+    return true;
+  }
+  function setCooldown(value){
+    movement.cooldown=!!value;
+    if(!movement.cooldown)movement.pendingCooldown=false;
+    refresh();
+  }
+
   window.combatManoeuvre={
     get cooldown(){return movement.cooldown;},
     get movedThisTurn(){return movedThisTurn();},
@@ -182,16 +174,12 @@
     get turn(){return combatTurn.turn;},
     get startMast(){return startMast();},
     clearCooldown(){movement.cooldown=false;movement.pendingCooldown=false;refresh();},
+    resetSails,
+    setCooldown,
     canMove(){return !blockedReason();},
     get diagnostics(){return{
-      turn:combatTurn.turn,
-      anchorTurn:movement.anchorTurn,
-      startMast:startMast(),
-      currentMast:state.playerMastTrack,
-      moved:movedThisTurn(),
-      status:status().kind,
-      cooldown:movement.cooldown,
-      legacyStartWrites:movement.legacyStartWrites
+      turn:combatTurn.turn,anchorTurn:movement.anchorTurn,startMast:startMast(),currentMast:state.playerMastTrack,
+      moved:movedThisTurn(),status:status().kind,cooldown:movement.cooldown,legacyStartWrites:movement.legacyStartWrites
     };}
   };
 
