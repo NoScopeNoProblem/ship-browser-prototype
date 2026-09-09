@@ -28,6 +28,66 @@ const SHIP_SETUPS = {
       {id:'p_hold2', type:'storage', name:'HOLD', row:1, col:2, hp:2, capacity:'1 / 3'}
     ]
   },
+
+  // ★★ movement lesson: two modest guns, one of which can pressure the Mast at exact alignment.
+  saltFinch: {
+    id:'saltFinch', name:'THE SALT FINCH', threatStars:2,
+    testExpectation:'Starter ship should win reliably; movement should matter, but damage is avoidable with careful play.',
+    columns:3, rows:2, mastColumn:1, mastHp:2,
+    rooms:[
+      {id:'e_sf_u0', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:0, col:0, hp:2},
+      {id:'e_sf_chain', type:'gun', name:'CHAIN', sub:'Cannon', row:0, col:1, hp:2, weapon:'chain'},
+      {id:'e_sf_std', type:'gun', name:'STANDARD', sub:'Cannon', row:0, col:2, hp:2, weapon:'standard'},
+      {id:'e_sf_h1', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:0, hp:2},
+      {id:'e_sf_h2', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:1, hp:2},
+      {id:'e_sf_h3', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:2, hp:2}
+    ],
+    openingIntents:[
+      {sourceId:'e_sf_chain', targetId:'p_mast'},
+      {sourceId:'e_sf_std', targetId:'p_heavy'}
+    ]
+  },
+
+  // ★★ tempo lesson: a fragile hidden Magazine can repeatedly accelerate the close-range Carronade.
+  powderWren: {
+    id:'powderWren', name:'THE POWDER WREN', threatStars:2,
+    testExpectation:'Starter ship should win; the danger spike comes from identifying or interrupting the hidden Magazine-Carronade pairing.',
+    columns:3, rows:2, mastColumn:1, mastHp:2,
+    rooms:[
+      {id:'e_pw_std', type:'gun', name:'STANDARD', sub:'Cannon', row:0, col:0, hp:2, weapon:'standard'},
+      {id:'e_pw_car', type:'gun', name:'CARRONADE', sub:'Cannon', row:0, col:1, hp:2, weapon:'carronade'},
+      {id:'e_pw_u0', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:0, col:2, hp:2},
+      {id:'e_pw_h1', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:0, hp:2},
+      {id:'e_pw_mag', type:'magazine', name:'???', revealName:'MAGAZINE', hidden:true, row:1, col:1, hp:1},
+      {id:'e_pw_h2', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:2, hp:2}
+    ],
+    openingIntents:[
+      {sourceId:'e_pw_std', targetId:'p_std'},
+      {sourceId:'e_pw_car', targetId:'p_mag'}
+    ]
+  },
+
+  // ★★ support lesson: only two guns, but a hidden Carpenter can extend the life of the Long Gun.
+  greyPetrel: {
+    id:'greyPetrel', name:'THE GREY PETREL', threatStars:2,
+    testExpectation:'Starter ship should win; the puzzle is whether to disable the guns quickly or interrupt a revealed repair chain.',
+    columns:4, rows:2, mastColumn:1, mastHp:2,
+    rooms:[
+      {id:'e_gp_std', type:'gun', name:'STANDARD', sub:'Cannon', row:0, col:0, hp:2, weapon:'standard'},
+      {id:'e_gp_u1', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:0, col:1, hp:2},
+      {id:'e_gp_u2', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:0, col:2, hp:2},
+      {id:'e_gp_long', type:'gun', name:'LONG GUN', sub:'Cannon', row:0, col:3, hp:2, weapon:'long'},
+      {id:'e_gp_h1', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:0, hp:2},
+      {id:'e_gp_h2', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:1, hp:2},
+      {id:'e_gp_h3', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:2, hp:2},
+      {id:'e_gp_carp', type:'carpenter', name:'???', revealName:'CARPENTER', hidden:true, row:1, col:3, hp:2}
+    ],
+    openingIntents:[
+      {sourceId:'e_gp_std', targetId:'p_std'},
+      {sourceId:'e_gp_long', targetId:'p_carp'}
+    ]
+  },
+
   ironGull: {
     id:'ironGull', name:'THE IRON GULL', threatStars:3, testExpectation:'Starter ship can win; experienced play should find avoiding all damage difficult.',
     columns:4, rows:2, mastColumn:1, mastHp:3,
