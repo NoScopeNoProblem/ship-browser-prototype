@@ -29,6 +29,22 @@ const SHIP_SETUPS = {
     ]
   },
 
+  // Mirror calibration fight: identical hull, room positions, HP and weapons to the starter Wayward.
+  // Enemy non-weapon rooms remain hidden under the normal combat information rules.
+  waywardEnemy: {
+    id:'waywardEnemy', name:'THE WAYWARD',
+    testExpectation:'Mirror-match calibration. Threat rating intentionally left unset until playtest.',
+    columns:3, rows:2, mastColumn:1, mastHp:3,
+    rooms:[
+      {id:'e_way_std', type:'gun', name:'STANDARD', sub:'Gun Deck', row:0, col:0, hp:3, weapon:'standard'},
+      {id:'e_way_mag', type:'magazine', name:'???', revealName:'MAGAZINE', hidden:true, row:0, col:1, hp:2},
+      {id:'e_way_heavy', type:'gun', name:'HEAVY', sub:'Gun Deck', row:0, col:2, hp:3, weapon:'heavy'},
+      {id:'e_way_hold1', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:0, hp:2},
+      {id:'e_way_carp', type:'carpenter', name:'???', revealName:'CARPENTER', hidden:true, row:1, col:1, hp:2},
+      {id:'e_way_hold2', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:2, hp:2}
+    ]
+  },
+
   // ★★ movement lesson: two modest guns, one of which can pressure the Mast at exact alignment.
   saltFinch: {
     id:'saltFinch', name:'THE SALT FINCH', threatStars:2,
@@ -117,7 +133,7 @@ const COMBAT_PARAMS = new URLSearchParams(window.location.search);
 const REQUESTED_PLAYER = COMBAT_PARAMS.get('player');
 const REQUESTED_ENEMY = COMBAT_PARAMS.get('enemy');
 const ACTIVE_PLAYER_ID = REQUESTED_PLAYER && SHIP_SETUPS[REQUESTED_PLAYER] ? REQUESTED_PLAYER : 'wayward';
-const ACTIVE_ENEMY_ID = REQUESTED_ENEMY && SHIP_SETUPS[REQUESTED_ENEMY] ? REQUESTED_ENEMY : 'ironGull';
+const ACTIVE_ENEMY_ID = REQUESTED_ENEMY && SHIP_SETUPS[REQUESTED_ENEMY] ? REQUESTED_ENEMY : 'waywardEnemy';
 const COMBAT_SETUP = {trackColumns:7, playerShip:ACTIVE_PLAYER_ID, enemyShip:ACTIVE_ENEMY_ID, playerMastTrack:3, enemyMastTrack:3};
 const weapons = WEAPON_ARCHETYPES;
 const PLAYER_SHIP_SETUP = SHIP_SETUPS[COMBAT_SETUP.playerShip];
