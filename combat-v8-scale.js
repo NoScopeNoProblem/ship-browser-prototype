@@ -58,14 +58,10 @@
     stage.style.minHeight=`${minHeight}px`;
   }
 
+  // Utility rooms do not commit the ship's position. Repair and Quick Load may be used
+  // before or after experimenting with this turn's one-column movement. A firing plan does.
   function hasCommittedPlayerAction(){
-    if(Object.keys(state.playerIntents||{}).length) return true;
-    if(window.combatUtility){
-      return playerRooms.some(room =>
-        (room.actionType==='repair'||room.actionType==='quickLoad') && combatUtility.isUsed(room.id)
-      );
-    }
-    return false;
+    return Object.keys(state.playerIntents||{}).length>0;
   }
 
   function turnMovementBounds(){
@@ -85,7 +81,7 @@
 
   function movementPermission(direction){
     if(playerMast.hp<=0) return {ok:false,message:'Mast destroyed'};
-    if(hasCommittedPlayerAction()) return {ok:false,message:'Action committed'};
+    if(hasCommittedPlayerAction()) return {ok:false,message:'Firing plan committed'};
     const target=state.playerMastTrack+direction;
     const bounds=turnMovementBounds();
     if(target<bounds.min||target>bounds.max) return {ok:false,message:null};
