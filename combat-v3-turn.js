@@ -30,6 +30,17 @@
     });
   }
 
+  // Small public bridge for room actions such as Magazine reloads. Keep the actual
+  // cadence state owned here so helpers cannot drift from combat resolution.
+  window.combatTurn = {
+    isReady(id){ return isReady(sourceEntity(id.startsWith('e_')?'enemy':'player', id)); },
+    getWeaponState(id){ return {...wstate(id)}; },
+    setWeaponState(id, next){ phase.weapon[id] = {...next}; syncLoadingFlags(); },
+    setReady(id){ phase.weapon[id] = {mode:'ready'}; syncLoadingFlags(); },
+    get turn(){ return phase.turn; },
+    get resolving(){ return phase.resolving; }
+  };
+
   // Add an enemy Heavy intent. It is invisible on turn 1 because Heavy is loading,
   // then becomes a normal 2-damage intent as soon as Heavy is ready on turn 2.
   if(!enemyIntents.some(i => i.sourceId === 'e_heavy')){
