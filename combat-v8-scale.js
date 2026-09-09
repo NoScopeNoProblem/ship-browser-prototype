@@ -54,6 +54,36 @@
     stage.style.minHeight=`${minHeight}px`;
   }
 
+  // Do not let the older movement wrappers clear plans when a movement attempt is
+  // illegal. A legal move is exactly one column from this turn's starting mast position.
+  function movementPermission(direction){
+    if(playerMast.hp<=0) return {ok:false,message:'Mast destroyed'};
+    const target=state.playerMastTrack+direction;
+    if(target<PLAYER_MAST_MIN||target>PLAYER_MAST_MAX) return {ok:false,message:null};
+    if(Math.abs(target-state.turnStartMast)>1) return {ok:false,message:'Movement used'};
+    return {ok:true,message:null};
+  }
+  const previousMoveLeft=moveLeft;
+  const previousMoveRight=moveRight;
+  moveLeft=function(){
+    const permission=movementPermission(-1);
+    if(!permission.ok){
+      if(permission.message) showRoomTooltip(playerMastBox,permission.message);
+      refresh();
+      return;
+    }
+    previousMoveLeft();
+  };
+  moveRight=function(){
+    const permission=movementPermission(1);
+    if(!permission.ok){
+      if(permission.message) showRoomTooltip(playerMastBox,permission.message);
+      refresh();
+      return;
+    }
+    previousMoveRight();
+  };
+
   function cloneSetup(id){
     const setup=SHIP_SETUPS[id];
     return setup ? structuredClone(setup) : null;
