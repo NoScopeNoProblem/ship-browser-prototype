@@ -10,23 +10,28 @@
     return !!(room && room.weapon && room.hp > 0 && !room.loading);
   }
 
+  function plannedDisabled(sourceId){
+    try{
+      const es = enemyIntentDistribution(playerIntentDistribution());
+      return !!es?.disabledSources?.has(sourceId);
+    }catch{ return false; }
+  }
+
   const baseGetTargetsForWeapon = getTargetsForWeapon;
   getTargetsForWeapon = function(side, weaponEntity){
     const targets = baseGetTargetsForWeapon(side, weaponEntity);
-    // Players cannot deliberately target destroyed enemy sections. Enemy fire still
-    // uses physical world-space collision, so movement can slide a wrecked room into a shot.
     if(side === 'player') return targets.filter(t => t && t.hp > 0);
     return targets;
   };
 
   function clearV4Visuals(){
     overlay.innerHTML = '';
-    document.querySelectorAll('.v4-source-focus,.v4-target-focus,.v4-overview-target,.v4-focus-miss').forEach(el => {
-      el.classList.remove('v4-source-focus','v4-target-focus','v4-overview-target','v4-focus-miss');
+    document.querySelectorAll('.v4-source-focus,.v4-source-disabled,.v4-target-focus,.v4-overview-target,.v4-focus-miss').forEach(el => {
+      el.classList.remove('v4-source-focus','v4-source-disabled','v4-target-focus','v4-overview-target','v4-focus-miss');
     });
   }
 
-  function drawV4Arc(side, source, overview=false){
+  function drawV4Arc(side, source, overview=false, disabled=false){
     if(!source || !source.weapon || !weaponReady(source)) return;
     const sourceEl = getEntityElement(side, source.id);
     if(!sourceEl) return;
@@ -47,33 +52,36 @@
     const above = sy < minY;
     const nearY = above ? minY : maxY;
     const farY = above ? maxY : minY;
-    const minX = worldColX(sw - weapon.arc);
-    const maxX = worldColX(sw + weapon.arc + 1);
+    const range = weapon.range ?? weapon.arc ?? 0;
+    const minX = worldColX(sw - range);
+    const maxX = worldColX(sw + range + 1);
 
     const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
     poly.setAttribute('points', [[sx,sy],[minX,nearY],[minX,farY],[maxX,farY],[maxX,nearY]].map(p=>p.join(',')).join(' '));
-    poly.setAttribute('class', `v4-arc ${side}${overview?' overview':''}`);
+    poly.setAttribute('class', `v4-arc ${side}${overview?' overview':''}${disabled?' disabled':''}`);
+    poly.dataset.sourceId = source.id;
     overlay.appendChild(poly);
   }
 
   function enemyIntentFor(sourceId){
-    return enemyIntents.find(i => i.sourceId === sourceId) || null;
+    return enemyIntents.find(i => i.sourceId === sourceId && !i.inactive) || null;
   }
 
   function showSourceIntent(sourceId){
     const source = sourceEntity('enemy', sourceId);
     if(!source) return;
     const sourceEl = getEntityElement('enemy', source.id);
-    if(sourceEl) sourceEl.classList.add('v4-source-focus');
+    const disabled = plannedDisabled(source.id);
+    if(sourceEl) sourceEl.classList.add(disabled ? 'v4-source-disabled' : 'v4-source-focus');
     if(!weaponReady(source)) return;
 
-    drawV4Arc('enemy', source, false);
+    drawV4Arc('enemy', source, false, disabled);
     const intent = enemyIntentFor(source.id);
     if(!intent) return;
     const impact = projectedEnemyImpact(intent);
     if(impact){
       const targetEl = getEntityElement('player', impact.id);
-      if(targetEl) targetEl.classList.add('v4-target-focus');
+      if(targetEl) targetEl.classList.add(disabled ? 'prevented' : 'v4-target-focus');
     } else {
       const miss = stage.querySelector(`.miss-marker[data-source-id="${source.id}"]`);
       if(miss) miss.classList.add('v4-focus-miss');
@@ -81,11 +89,15 @@
   }
 
   function showEnemyOverview(){
-    enemyRooms.filter(r => r.weapon && weaponReady(r)).forEach(r => drawV4Arc('enemy', r, true));
+    enemyRooms.filter(r => r.weapon && weaponReady(r)).forEach(r => drawV4Arc('enemy', r, true, plannedDisabled(r.id)));
     const stateNow = enemyIntentDistribution(playerIntentDistribution());
     stateNow.targetMap.forEach((_,id) => {
       const el = getEntityElement('player', id);
       if(el) el.classList.add('v4-overview-target');
+    });
+    stateNow.preventedTargetMap?.forEach((_,id) => {
+      const el = getEntityElement('player', id);
+      if(el) el.classList.add('prevented');
     });
   }
 
@@ -126,7 +138,6 @@
     renderV4();
   }
 
-  // Intent icon hover: always trace the exact gun, even if the parent room redraws.
   stage.addEventListener('pointerover', e => {
     const chip = e.target.closest && e.target.closest('.intent-chip[data-source-id]');
     if(chip && (chip.dataset.side || 'enemy') === 'enemy'){
@@ -148,8 +159,6 @@
     if(room && !room.contains(e.relatedTarget)) clearHover(room.dataset.id);
   }, true);
 
-  // Own Z at window-capture level. Older listeners may run first on the same node,
-  // but stopPropagation does not block this listener; we then suppress legacy overview.
   window.addEventListener('keydown', e => {
     if(e.code !== 'KeyZ' || e.repeat || document.body.classList.contains('v3-resolving')) return;
     e.preventDefault();
@@ -176,7 +185,6 @@
     setTimeout(() => tip.remove(), 820);
   }
 
-  // Destroyed enemy rooms/mast are never deliberate player targets.
   stage.addEventListener('click', e => {
     if(!state.selectedWeaponId) return;
     const roomEl = e.target.closest && e.target.closest('.room[data-side="enemy"]');
@@ -228,7 +236,6 @@
     });
   }
 
-  // When resolution ends, enemy AI chooses only living rooms for the new turn.
   let wasResolving = document.body.classList.contains('v3-resolving');
   const observer = new MutationObserver(() => {
     const nowResolving = document.body.classList.contains('v3-resolving');
@@ -240,7 +247,6 @@
   });
   observer.observe(document.body, {attributes:true, attributeFilter:['class']});
 
-  // Sanity pass: ensure a selected friendly gun visually includes a live enemy mast.
   const baseRenderSelection = renderSelection;
   renderSelection = function(){
     baseRenderSelection();
