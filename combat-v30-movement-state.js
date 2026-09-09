@@ -1,23 +1,38 @@
 (() => {
-  // v30: canonical movement state.
-  // combatTurn.startMast is the sole turn-start alignment. state.playerMastTrack is the sole
-  // current alignment. Older modules may still read/write state.turnStartMast, but that property
-  // is now a compatibility view of combatTurn.startMast and cannot become a second source of truth.
+  // v30: authoritative manoeuvre state.
+  // One private turn-start anchor + one current alignment. Movement changes only current alignment.
+  // All legacy state.turnStartMast reads are redirected here; legacy writes are ignored/diagnosed.
   if(!window.combatTurn) return;
 
-  const movement={cooldown:false,pendingCooldown:false,wasResolving:combatTurn.resolving,legacyStartWrites:0};
-  const startMast=()=>combatTurn.startMast;
+  const movement={
+    anchorTurn:combatTurn.turn,
+    turnStartMast:state.playerMastTrack,
+    cooldown:false,
+    pendingCooldown:false,
+    wasResolving:combatTurn.resolving,
+    legacyStartWrites:0
+  };
+
+  function syncAnchor(){
+    if(combatTurn.turn!==movement.anchorTurn){
+      movement.anchorTurn=combatTurn.turn;
+      movement.turnStartMast=state.playerMastTrack;
+    }
+    return movement.turnStartMast;
+  }
+  const startMast=()=>syncAnchor();
   const movedThisTurn=()=>state.playerMastTrack!==startMast();
   const hasFiringPlan=()=>Object.keys(state.playerIntents||{}).length>0;
 
-  // Retire the mutable compatibility copy. Several older modules wrote this at different moments
-  // (reset, turn end, observers), which allowed renderers to disagree about whether movement had
-  // happened. All of those reads now resolve to the combat turn's immutable start alignment.
+  // There used to be several writable copies of the turn-start alignment. That let a late observer
+  // silently redefine "start" after the ship moved. Keep the old property only as a read bridge.
   Object.defineProperty(state,'turnStartMast',{
     configurable:true,
     enumerable:true,
     get(){return startMast();},
-    set(value){if(Number(value)!==Number(startMast()))movement.legacyStartWrites++;}
+    set(value){
+      if(Number(value)!==Number(startMast()))movement.legacyStartWrites++;
+    }
   });
   Object.defineProperty(state,'movedThisTurn',{
     configurable:true,
@@ -55,6 +70,16 @@
     refresh();
   }
 
+  function emitAlignmentChange(previous,current){
+    window.dispatchEvent(new CustomEvent('combat-alignment-changed',{detail:{
+      turn:combatTurn.turn,
+      startMast:startMast(),
+      previousMast:previous,
+      currentMast:current,
+      moved:movedThisTurn()
+    }}));
+  }
+
   function move(direction){
     const reason=blockedReason();
     if(reason){showBlocked(reason);return;}
@@ -65,16 +90,17 @@
     }
     if(!canStep(direction)){showBlocked('Movement used');return;}
 
-    // Movement never mutates utility use, weapon cadence, incoming intent data, or turn start.
-    // It changes one value only: current alignment. Everything else is re-derived by refresh().
+    // This is the complete movement mutation: current alignment only. No utility state, cadence,
+    // incoming intent, damage prediction, or turn-start value is edited here.
+    const previous=state.playerMastTrack;
     clearPlayerTurnPlans();
     window.combatDodgeFeedback?.reset?.();
     state.playerMastTrack+=direction;
+    emitAlignmentChange(previous,state.playerMastTrack);
     refresh();
   }
 
-  // Replace the accumulated movement wrappers with one implementation. Existing button/key
-  // listeners call these globals at event time, so no extra movement listeners are needed.
+  // Retire the accumulated move wrappers. Existing controls resolve these globals at click/key time.
   moveLeft=function(){move(-1);};
   moveRight=function(){move(1);};
 
@@ -91,7 +117,7 @@
     const s=status(),badge=document.createElement('div');
     badge.className=`v17-mast-action ${s.kind}`;
     badge.innerHTML=`<span>${s.icon}</span><b>${s.label}</b>`;
-    badge.title=s.title;
+    badge.title=`${s.title} · start ${startMast()+1} / current ${state.playerMastTrack+1}`;
     playerMastBox.appendChild(badge);
   }
 
@@ -105,7 +131,6 @@
     moveAft.classList.toggle('v17-flee-edge',fleeLeft);
     moveFore.classList.toggle('v17-flee-edge',fleeRight);
     if(blocked){
-      // Keep blocked arrows clickable so the existing tooltip explains why movement is unavailable.
       moveAft.disabled=false;moveFore.disabled=false;
       moveAft.setAttribute('aria-disabled','true');moveFore.setAttribute('aria-disabled','true');
     }else{
@@ -127,9 +152,12 @@
     });
   }
 
+  // v30 is intentionally loaded after the general planning renderer. It is the last/only owner
+  // of Mast READY/USED/RESETTING presentation and movement-control reachability.
   const baseRefresh=refresh;
   refresh=function(){
     baseRefresh();
+    syncAnchor();
     decorateMast();
     decorateTrackAndButtons();
   };
@@ -140,6 +168,7 @@
     if(movement.wasResolving&&!now&&!window.combatEnded){
       movement.cooldown=movement.pendingCooldown;
       movement.pendingCooldown=false;
+      syncAnchor();
       refresh();
     }
     movement.wasResolving=now;
@@ -154,7 +183,16 @@
     get startMast(){return startMast();},
     clearCooldown(){movement.cooldown=false;movement.pendingCooldown=false;refresh();},
     canMove(){return !blockedReason();},
-    get diagnostics(){return{turn:combatTurn.turn,startMast:startMast(),currentMast:state.playerMastTrack,moved:movedThisTurn(),cooldown:movement.cooldown,legacyStartWrites:movement.legacyStartWrites};}
+    get diagnostics(){return{
+      turn:combatTurn.turn,
+      anchorTurn:movement.anchorTurn,
+      startMast:startMast(),
+      currentMast:state.playerMastTrack,
+      moved:movedThisTurn(),
+      status:status().kind,
+      cooldown:movement.cooldown,
+      legacyStartWrites:movement.legacyStartWrites
+    };}
   };
 
   refresh();
