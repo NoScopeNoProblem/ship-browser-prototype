@@ -172,6 +172,14 @@ const SHIP_SETUPS = {
   }
 };
 
+// The dev ship-select screen stores the exact working pair here before entering combat.
+// Keep this as data injection only: the combat engine still receives ordinary ship setups.
+try{
+  const devMatch=JSON.parse(localStorage.getItem('highSeasDevMatch.v1')||'null');
+  if(devMatch?.player?.rooms)SHIP_SETUPS.__dev_player=devMatch.player;
+  if(devMatch?.enemy?.rooms)SHIP_SETUPS.__dev_enemy=devMatch.enemy;
+}catch(error){console.warn('Dev match data unavailable',error);}
+
 // Matchups can now be selected without changing engine code. Future enemy definitions only
 // need to be added to SHIP_SETUPS and can then be loaded with ?enemy=<id>. The same hook is
 // already available for player builds via ?player=<id> when we begin testing those.
