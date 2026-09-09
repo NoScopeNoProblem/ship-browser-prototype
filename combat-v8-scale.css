@@ -1,0 +1,29 @@
+/* v8: scalable ship grids + clearer disabled enemy intentions */
+
+/* Later rules replace the original 3/4-column nth-child assumptions. */
+.ship-grid .room{border-right:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important}
+.ship-grid .room[data-last-col="true"]{border-right:0!important}
+.ship-grid .room[data-last-row="true"]{border-bottom:0!important}
+
+/* If planned player fire disables an enemy gun before it acts, keep the information
+   visible but clearly cancelled rather than presenting it as a live red threat. */
+.v4-arc.enemy.disabled{
+  stroke:rgba(83,94,95,.66)!important;
+  fill:rgba(83,94,95,.08)!important;
+  stroke-dasharray:7 5;
+}
+.v4-source-disabled{
+  box-shadow:inset 0 0 0 3px rgba(88,99,100,.78)!important;
+  filter:grayscale(.65);
+}
+.intent-chip.prevented{
+  border-color:rgba(83,94,95,.58)!important;
+  color:#566264!important;
+  background:repeating-linear-gradient(-45deg,rgba(83,94,95,.10),rgba(83,94,95,.10) 4px,#eee8da 4px,#eee8da 8px)!important;
+  filter:grayscale(.65);
+  opacity:.78;
+}
+
+/* Movement buttons should read as genuinely unavailable when the mast is broken or
+   the ship has already spent its one-step movement this turn. */
+.move-btn:disabled{filter:grayscale(.6);opacity:.32!important}
