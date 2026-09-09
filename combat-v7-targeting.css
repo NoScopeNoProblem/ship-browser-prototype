@@ -13,7 +13,7 @@
   content:'✦  READY';
   position:absolute;
   right:5px;
-  top:27px;
+  top:5px;
   z-index:19;
   min-width:54px;
   padding:3px 5px;
@@ -27,6 +27,7 @@
   box-shadow:0 1px 2px rgba(0,0,0,.10);
   pointer-events:none;
 }
+.room[data-side="player"].action-ready .room-title{padding-right:60px!important}
 .room[data-side="player"].action-ready:not(.enemy-intended):not(.dodged):not(.prevented){
   box-shadow:inset 0 -3px 0 rgba(185,123,32,.55);
 }
