@@ -10,7 +10,7 @@ const WEAPON_ARCHETYPES = {
     cadence:{initialLoadTurns:1, reloadTurns:1, shotsBeforeReload:1}
   },
   repeater: {
-    name:'Repeater Cannon', range:1, arc:1, damage:1, icon:'≡→'},
+    name:'Repeater Cannon', range:1, arc:1, damage:1, icon:'≡→',
     cadence:{initialLoadTurns:0, reloadTurns:1, shotsBeforeReload:2}
   },
   long: {
