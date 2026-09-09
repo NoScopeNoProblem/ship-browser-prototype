@@ -1,0 +1,41 @@
+/* v17: Mast Manoeuvre cadence + stronger transient dodge feedback */
+
+.v17-mast-action{
+  position:absolute;right:-9px;top:-10px;z-index:104;
+  min-width:48px;height:20px;padding:1px 5px;border-radius:3px;
+  display:flex;align-items:center;justify-content:center;gap:3px;
+  border:1px solid rgba(55,73,77,.55);background:rgba(241,235,219,.97);color:#3d5054;
+  font:800 7px/1 Arial,sans-serif;letter-spacing:.04em;pointer-events:none;
+  box-shadow:0 1px 3px rgba(0,0,0,.14)
+}
+.v17-mast-action span{font:900 12px/1 Arial,sans-serif}.v17-mast-action b{font:inherit}
+.v17-mast-action.ready{border-color:rgba(45,128,79,.68);background:rgba(226,245,229,.98);color:#2c764a}
+.v17-mast-action.used{border-color:rgba(60,110,145,.68);background:rgba(227,239,247,.98);color:#3c6f91}
+.v17-mast-action.cooldown{border-color:rgba(117,105,72,.55);background:rgba(235,230,211,.98);color:#756b4f}
+.v17-mast-action.locked,.v17-mast-action.disabled{filter:grayscale(.55);opacity:.72}
+
+/* Cooldown means there are no candidate movement cells this turn. Keep the occupied cell neutral;
+   every other cell is unavailable and no light reachable-cell treatment remains. */
+.track-row.v17-manoeuvre-cooldown .track-cell{filter:saturate(.55)}
+.track-row.v17-manoeuvre-cooldown .track-cell.track-current{
+  background:rgba(239,233,218,.26)!important;opacity:1!important;filter:none!important
+}
+.track-row.v17-manoeuvre-cooldown .track-cell.track-reachable{background:inherit!important}
+.move-btn.v17-move-blocked{
+  opacity:.38!important;filter:grayscale(.8);cursor:not-allowed!important
+}
+
+/* DODGED is deliberately short-lived, but reads as an important successful defence while present. */
+.v15-dodged-tip{
+  padding:7px 11px!important;border:2px solid rgba(53,116,161,.82)!important;
+  background:rgba(222,239,249,.98)!important;color:#2f6f99!important;
+  box-shadow:0 2px 6px rgba(44,92,124,.18)!important;
+  font-size:10px!important;letter-spacing:.11em!important
+}
+.room.v17-dodge-pulse,.mast-box.v17-dodge-pulse{
+  animation:v17DodgePulse .72s ease-in-out 4!important
+}
+@keyframes v17DodgePulse{
+  0%,100%{box-shadow:inset 0 0 0 2px rgba(58,126,174,.28),0 0 0 0 rgba(58,126,174,0)}
+  50%{box-shadow:inset 0 0 0 4px rgba(58,126,174,.88),0 0 0 3px rgba(58,126,174,.12)}
+}
