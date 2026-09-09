@@ -3,77 +3,58 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>High Seas Combat Prototype</title>
-  <link rel="stylesheet" href="styles.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v3-overrides.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v3-hotfix.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v5-actions.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v6-effects.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v7-targeting.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v8-scale.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v9-polish.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v11.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v12-polish.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v13-polish.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v14-polish.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v15-polish.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v17-manoeuvre.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v18-state-fixes.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v19-small-fixes.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v20-damage-feedback.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v21-hover-target.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v22-utility-stats.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v24-cadence-readability.css?v=20260909ap" />
-  <link rel="stylesheet" href="combat-v27-planning-runtime.css?v=20260909ap" />
+  <title>High Seas — Dev Ship Select</title>
+  <link rel="stylesheet" href="ship-select.css?v=20260909aq" />
 </head>
 <body>
-  <main class="app">
-    <header class="topbar">
-      <div><div class="eyebrow">Combat Sandbox</div><h1>High Seas — Alignment & Firing Arcs</h1></div>
-      <div class="help">Hover cannon / intent · Z enemy targets · X friendly targets · ←/→ move · E end turn · R reset turn · I replay intents · H exterior</div>
+  <main class="dev-shell">
+    <header class="dev-topbar">
+      <div><div class="eyebrow">Combat Sandbox · Dev Setup</div><h1>Select & Build Ships</h1></div>
+      <div class="dev-note">Full information is shown here for testing. Enemy support/storage rooms return to normal hidden-information rules when combat begins.</div>
     </header>
-    <section class="panel combat-panel">
-      <div class="combat-stage" id="combatStage">
-        <div class="corner-name enemy-corner">ENEMY</div>
-        <div class="corner-name player-corner">YOUR SHIP</div>
-        <div class="track-row" id="trackRow"></div>
-        <div class="track-chevrons"><button id="moveAft" class="move-btn">◀</button><button id="moveFore" class="move-btn">▶</button></div>
-        <div class="ship-block enemy-block" id="enemyBlock">
-          <div class="mast-box enemy-mast" id="enemyMastBox"><div class="mast-title">MAIN MAST</div><div class="pips" id="enemyMastPips"></div></div>
-          <div class="ship-grid enemy-grid" id="enemyGrid"></div>
+
+    <div class="builder-grid">
+      <section class="match-panel">
+        <div class="match-row">
+          <aside class="ship-list-panel">
+            <div class="list-title"><strong>PLAYER SHIPS</strong><span class="list-columns"><span>SHIP</span><span>SIZE</span><span>RANK</span></span></div>
+            <div class="ship-list" id="playerShipList"></div>
+          </aside>
+          <div class="preview-panel" id="playerShipPreview"></div>
+          <button class="customise" id="playerCustomise" type="button">CUSTOMISE PLAYER</button>
         </div>
-        <div class="ship-block player-block" id="playerBlock">
-          <div class="mast-box player-mast" id="playerMastBox"><div class="mast-title">MAIN MAST</div><div class="pips" id="playerMastPips"></div></div>
-          <div class="ship-grid player-grid" id="playerGrid"></div>
+
+        <div class="match-row">
+          <aside class="ship-list-panel">
+            <div class="list-title"><strong>ENEMY SHIPS</strong><span class="list-columns"><span>SHIP</span><span>SIZE</span><span>RANK</span></span></div>
+            <div class="ship-list" id="enemyShipList"></div>
+          </aside>
+          <div class="preview-panel" id="enemyShipPreview"></div>
+          <button class="customise" id="enemyCustomise" type="button">CUSTOMISE ENEMY</button>
         </div>
-        <svg class="arc-overlay" id="arcOverlay" aria-hidden="true"></svg>
-      </div>
-    </section>
-    <section class="panel status-panel"><div><div class="eyebrow">Hovered / Selected</div><div id="weaponInfo" class="status-text">None</div></div><div><div class="eyebrow">Effect</div><div id="targetInfo" class="status-text">Hover an intent icon, or click a ready gun deck to plan a shot.</div></div></section>
+
+        <div class="start-wrap"><button class="start-combat" id="startCombat" type="button">START COMBAT</button></div>
+      </section>
+
+      <aside class="editor-panel" id="shipEditor">
+        <div class="editor-head"><h2>SHIP EDITOR</h2><button class="close-edit" id="stopEditing" type="button">CLOSE</button></div>
+        <div class="editor-empty" id="editorEmpty">Choose <b>CUSTOMISE</b> on either ship. Hover rooms to inspect them, click a room to lock selection, then choose a replacement from the room library.</div>
+        <div class="editor-body" id="editorBody" hidden>
+          <div class="edit-kicker" id="editorSide"></div>
+          <div class="field"><label>SHIP NAME</label><input id="shipName" maxlength="32" /></div>
+          <div class="field"><label>HULL SIZE</label><div class="size-toggle"><button id="size3" type="button">3×2</button><button id="size4" type="button">4×2</button></div></div>
+          <div class="field"><label>MAST HP</label><div class="stepper"><button id="mastHpDown" type="button">−</button><span id="mastHp">3</span><button id="mastHpUp" type="button">+</button></div></div>
+          <div class="field"><label>MAST COLUMN</label><select id="mastColumn"></select></div>
+          <div class="field"><label>SELECTED ROOM</label><div class="selected-room-label" id="selectedRoomLabel"></div></div>
+          <div class="field"><label>ROOM HP</label><div class="stepper"><button id="roomHpDown" type="button">−</button><span id="roomHp">—</span><button id="roomHpUp" type="button">+</button></div></div>
+          <div class="library-title">ROOM LIBRARY</div>
+          <div class="room-library" id="roomLibrary"></div>
+          <div class="editor-actions"><button id="saveShip" type="button">SAVE</button><button id="saveAsShip" type="button">SAVE AS NEW</button></div>
+        </div>
+      </aside>
+    </div>
   </main>
-  <script src="combat-v11-data.js?v=20260909ap"></script>
-  <script src="combat-v2-core.js?v=20260909ap"></script>
-  <script src="combat-v2-ui.js?v=20260909ap"></script>
-  <script src="combat-v2-controls.js?v=20260909ap"></script>
-  <script>
-    var enemyMastEl = enemyMastBox;
-    function roomWidth(){ const el=enemyGrid.querySelector('.room'); return el ? el.getBoundingClientRect().width : ROOM_W(); }
-  </script>
-  <script src="combat-v11-turn.js?v=20260909ap"></script>
-  <script src="combat-v3-layout-fix.js?v=20260909ap"></script>
-  <script src="combat-v4-hotfix.js?v=20260909ap"></script>
-  <script src="combat-v5-actions.js?v=20260909ap"></script>
-  <script src="combat-v6-effects.js?v=20260909ap"></script>
-  <script src="combat-v7-targeting.js?v=20260909ap"></script>
-  <script src="combat-v8-scale.js?v=20260909ap"></script>
-  <script src="combat-v9-polish.js?v=20260909ap"></script>
-  <script src="combat-v11-intentions.js?v=20260909ap"></script>
-  <script src="combat-v11-outcomes.js?v=20260909ap"></script>
-  <script src="combat-v12-polish.js?v=20260909ap"></script>
-  <script src="combat-v17-manoeuvre.js?v=20260909ap"></script>
-  <script src="combat-v19-small-fixes.js?v=20260909ap"></script>
-  <script src="combat-v20-damage-feedback.js?v=20260909ap"></script>
-  <script src="combat-v21-hover-target.js?v=20260909ap"></script>
-  <script src="combat-v27-planning-runtime.js?v=20260909ap"></script>
+  <script src="combat-v11-data.js?v=20260909aq"></script>
+  <script src="ship-select.js?v=20260909aq"></script>
 </body>
 </html>
