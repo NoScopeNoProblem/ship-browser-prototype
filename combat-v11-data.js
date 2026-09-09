@@ -9,11 +9,13 @@ const WEAPON_ARCHETYPES = {
 };
 
 const ROOM_ARCHETYPES = {
-  gun:       {kind:'gun', actionType:'fire'},
-  magazine:  {kind:'magazine', actionType:'quickLoad', explosionDamage:1},
-  carpenter: {kind:'carpenter', actionType:'repair', repairAmount:1},
-  storage:   {kind:'storage', actionType:null},
-  unknown:   {kind:'unknown', actionType:null}
+  gun:        {kind:'gun', actionType:'fire'},
+  magazine:   {kind:'magazine', actionType:'quickLoad', explosionDamage:1},
+  carpenter:  {kind:'carpenter', actionType:'repair', repairAmount:1},
+  sailmaster: {kind:'sailmaster', actionType:'resetSails'},
+  boatswain:   {kind:'boatswain', actionType:'brace', braceAmount:1},
+  storage:     {kind:'storage', actionType:null},
+  unknown:     {kind:'unknown', actionType:null}
 };
 
 const SHIP_SETUPS = {
