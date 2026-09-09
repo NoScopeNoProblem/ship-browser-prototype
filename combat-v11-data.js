@@ -83,10 +83,10 @@ const SHIP_SETUPS = {
     ]
   },
 
-  // ★★ support lesson: only two guns, but a hidden Carpenter can extend the life of the Long Gun.
+  // ★ calibration: too little simultaneous pressure and too fragile to survive into its support game.
   greyPetrel: {
-    id:'greyPetrel', name:'THE GREY PETREL', threatStars:2,
-    testExpectation:'Starter ship should win; the puzzle is whether to disable the guns quickly or interrupt a revealed repair chain.',
+    id:'greyPetrel', name:'THE GREY PETREL', threatStars:1,
+    testExpectation:'Calibrated at ★. Starter Wayward can often end this fight early in Turn 2 without taking damage.',
     columns:4, rows:2, mastColumn:1, mastHp:2,
     rooms:[
       {id:'e_gp_std', type:'gun', name:'STANDARD', sub:'Cannon', row:0, col:0, hp:2, weapon:'standard'},
@@ -101,6 +101,29 @@ const SHIP_SETUPS = {
     openingIntents:[
       {sourceId:'e_gp_std', targetId:'p_std'},
       {sourceId:'e_gp_long', targetId:'p_carp'}
+    ]
+  },
+
+  // ★★ durability/support test: three credible guns backed by both Magazine and Carpenter.
+  // More armour than the Wayward mirror, but materially less simultaneous pressure than Iron Gull.
+  copperKestrel: {
+    id:'copperKestrel', name:'THE COPPER KESTREL', threatStars:2,
+    testExpectation:'Upper-end ★★. Starter Wayward should still be favoured, but a clean no-damage win should require good target priority and use of movement.',
+    columns:4, rows:2, mastColumn:1, mastHp:3,
+    rooms:[
+      {id:'e_ck_std', type:'gun', name:'STANDARD', sub:'Gun Deck', row:0, col:0, hp:3, weapon:'standard'},
+      {id:'e_ck_heavy', type:'gun', name:'HEAVY', sub:'Gun Deck', row:0, col:1, hp:3, weapon:'heavy'},
+      {id:'e_ck_long', type:'gun', name:'LONG GUN', sub:'Gun Deck', row:0, col:2, hp:3, weapon:'long'},
+      {id:'e_ck_hold0', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:0, col:3, hp:3},
+      {id:'e_ck_hold1', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:0, hp:3},
+      {id:'e_ck_mag', type:'magazine', name:'???', revealName:'MAGAZINE', hidden:true, row:1, col:1, hp:2},
+      {id:'e_ck_carp', type:'carpenter', name:'???', revealName:'CARPENTER', hidden:true, row:1, col:2, hp:3},
+      {id:'e_ck_hold2', type:'storage', name:'???', revealName:'HOLD', hidden:true, row:1, col:3, hp:3}
+    ],
+    openingIntents:[
+      {sourceId:'e_ck_std', targetId:'p_std'},
+      {sourceId:'e_ck_heavy', targetId:'p_mag'},
+      {sourceId:'e_ck_long', targetId:'p_carp'}
     ]
   },
 
@@ -133,7 +156,7 @@ const COMBAT_PARAMS = new URLSearchParams(window.location.search);
 const REQUESTED_PLAYER = COMBAT_PARAMS.get('player');
 const REQUESTED_ENEMY = COMBAT_PARAMS.get('enemy');
 const ACTIVE_PLAYER_ID = REQUESTED_PLAYER && SHIP_SETUPS[REQUESTED_PLAYER] ? REQUESTED_PLAYER : 'wayward';
-const ACTIVE_ENEMY_ID = REQUESTED_ENEMY && SHIP_SETUPS[REQUESTED_ENEMY] ? REQUESTED_ENEMY : 'greyPetrel';
+const ACTIVE_ENEMY_ID = REQUESTED_ENEMY && SHIP_SETUPS[REQUESTED_ENEMY] ? REQUESTED_ENEMY : 'copperKestrel';
 const COMBAT_SETUP = {trackColumns:7, playerShip:ACTIVE_PLAYER_ID, enemyShip:ACTIVE_ENEMY_ID, playerMastTrack:3, enemyMastTrack:3};
 const weapons = WEAPON_ARCHETYPES;
 const PLAYER_SHIP_SETUP = SHIP_SETUPS[COMBAT_SETUP.playerShip];
