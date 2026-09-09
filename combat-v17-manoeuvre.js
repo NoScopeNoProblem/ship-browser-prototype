@@ -14,7 +14,7 @@
 
   function blockedReason(){
     if(playerMast.hp<=0)return 'Mast destroyed';
-    if(manoeuvre.cooldown)return 'Moved last turn — trimming sails';
+    if(manoeuvre.cooldown)return 'Moved last turn — sails resetting';
     if(hasFiringPlan())return 'Firing plan committed';
     return null;
   }
@@ -25,21 +25,45 @@
     return !!reason;
   }
 
+  function movementBounds(){
+    if(window.combatFactory?.turnMovementBounds)return combatFactory.turnMovementBounds();
+    const start=state.turnStartMast;
+    return {min:Math.max(PLAYER_MAST_MIN,start-1),max:Math.min(PLAYER_MAST_MAX,start+1)};
+  }
+
+  function fleeAttempt(direction){
+    return (direction<0&&state.playerMastTrack===PLAYER_MAST_MIN)||(direction>0&&state.playerMastTrack===PLAYER_MAST_MAX);
+  }
+
+  function canStep(direction){
+    const target=state.playerMastTrack+direction,bounds=movementBounds();
+    return target>=bounds.min&&target<=bounds.max&&target>=PLAYER_MAST_MIN&&target<=PLAYER_MAST_MAX;
+  }
+
+  function offerFlee(){
+    if(window.combatOutcome?.offerFlee)combatOutcome.offerFlee();
+    else showRoomTooltip(playerMastBox,'Flee route unavailable');
+  }
+
   // Wrap the generalized movement functions so keyboard and button input share the same rule.
   const baseMoveLeft=moveLeft,baseMoveRight=moveRight;
   moveLeft=function(){
     if(showBlocked()){refresh();return;}
+    if(fleeAttempt(-1)){offerFlee();return;}
+    if(canStep(-1))window.combatDodgeFeedback?.reset?.();
     baseMoveLeft();
   };
   moveRight=function(){
     if(showBlocked()){refresh();return;}
+    if(fleeAttempt(1)){offerFlee();return;}
+    if(canStep(1))window.combatDodgeFeedback?.reset?.();
     baseMoveRight();
   };
 
   function mastStatus(){
     if(playerMast.hp<=0)return {kind:'disabled',icon:'✕',label:'DISABLED',title:'Mast destroyed — cannot manoeuvre'};
-    if(manoeuvre.cooldown)return {kind:'cooldown',icon:'⛵',label:'TRIMMING',title:'Trimming sails — manoeuvre unavailable this turn'};
-    if(movedThisTurn())return {kind:'used',icon:'↔',label:'USED',title:'Manoeuvre planned — next turn will be spent trimming sails'};
+    if(manoeuvre.cooldown)return {kind:'cooldown',icon:'⛵',label:'RESETTING',title:'Sails resetting after last turn’s manoeuvre — movement unavailable this turn'};
+    if(movedThisTurn())return {kind:'used',icon:'↔',label:'USED',title:'Manoeuvre planned — sails will need to reset next turn'};
     if(hasFiringPlan())return {kind:'locked',icon:'↔',label:'LOCKED',title:'Alignment locked by firing plan'};
     return {kind:'ready',icon:'↔',label:'READY',title:'Manoeuvre ready — move one track segment fore or aft'};
   }
@@ -53,18 +77,12 @@
     playerMastBox.appendChild(badge);
   }
 
-  function movementBounds(){
-    if(window.combatFactory?.turnMovementBounds)return combatFactory.turnMovementBounds();
-    const start=state.turnStartMast;
-    return {min:Math.max(PLAYER_MAST_MIN,start-1),max:Math.min(PLAYER_MAST_MAX,start+1)};
-  }
-
   function decorateMovementControls(){
     const bounds=movementBounds();
     const blocked=!!blockedReason();
 
     // During a meaningful blocked state leave the arrows clickable so they can explain why.
-    // At a true hull/turn boundary they remain natively disabled because there is no hidden rule to explain.
+    // At the outer hull edge, the outward arrow remains clickable to offer Flee instead.
     if(blocked){
       moveAft.disabled=false;moveFore.disabled=false;
       moveAft.classList.add('v17-move-blocked');moveFore.classList.add('v17-move-blocked');
@@ -72,8 +90,14 @@
     }else{
       moveAft.classList.remove('v17-move-blocked');moveFore.classList.remove('v17-move-blocked');
       moveAft.removeAttribute('aria-disabled');moveFore.removeAttribute('aria-disabled');
-      moveAft.disabled=state.playerMastTrack<=bounds.min;
-      moveFore.disabled=state.playerMastTrack>=bounds.max;
+      const fleeLeft=state.playerMastTrack===PLAYER_MAST_MIN;
+      const fleeRight=state.playerMastTrack===PLAYER_MAST_MAX;
+      moveAft.disabled=state.playerMastTrack<=bounds.min&&!fleeLeft;
+      moveFore.disabled=state.playerMastTrack>=bounds.max&&!fleeRight;
+      moveAft.classList.toggle('v17-flee-edge',fleeLeft);
+      moveFore.classList.toggle('v17-flee-edge',fleeRight);
+      if(fleeLeft)moveAft.title='Flee this engagement';else moveAft.removeAttribute('title');
+      if(fleeRight)moveFore.title='Flee this engagement';else moveFore.removeAttribute('title');
     }
 
     trackRow.classList.toggle('v17-manoeuvre-cooldown',manoeuvre.cooldown);
