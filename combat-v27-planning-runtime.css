@@ -1,8 +1,8 @@
 /* v27: one authoritative current-alignment planning view. */
 
-/* Z/X now communicate committed target relationships, not the older broad range polygons.
-   Old key-repeat listeners may still run, but their overlays are deliberately suppressed. */
-body.v27-planning-runtime .v9-range-overlay{display:none!important}
+/* Z/X keep the broad firing-arc overview. v27 may additionally draw committed target lines,
+   but the range polygons remain visible so the player can read both coverage and intention. */
+body.v27-planning-runtime .v9-range-overlay{display:block!important}
 body.v27-planning-runtime.v9-range-held .v4-arc-overlay,
 body.v27-planning-runtime.v9-range-held #arcOverlay{display:none!important}
 
@@ -17,7 +17,3 @@ body.v27-planning-runtime .room[data-side="player"].v14-repair-target{
 
 /* The final Mast badge is always the single current manoeuvre state. */
 body.v27-planning-runtime .player-mast .v17-mast-action{z-index:124}
-
-body.v27-planning-runtime.v27-target-hold .v9-range-overlay,
-body.v27-planning-runtime.v27-target-hold .v4-arc-overlay,
-body.v27-planning-runtime.v27-target-hold #arcOverlay{display:none!important}
