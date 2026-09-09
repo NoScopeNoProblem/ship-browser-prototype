@@ -3,8 +3,6 @@
     selected: null,
     used: {},
     rollback: [],
-    quickLoaded: new Set(),
-    quickLoadedFiring: new Set(),
     wasResolving: document.body.classList.contains('v3-resolving')
   };
 
@@ -70,9 +68,10 @@
     } else if(source.actionType === 'quickLoad'){
       if(!window.combatTurn) return false;
       utility.rollback.push({type:'reload', targetId, weaponState:combatTurn.getWeaponState(targetId)});
+      // Quick Load creates a fresh loaded state. Nothing starts reloading again until
+      // this weapon actually fires; leaving it unused preserves the loaded state.
       combatTurn.setReady(targetId);
       target.loading = false;
-      utility.quickLoaded.add(targetId);
     }
 
     utility.used[sourceId] = true;
@@ -81,7 +80,7 @@
     state.hoverIntent = null;
     refresh();
     const targetEl = getEntityElement('player', targetId);
-    tooltip(targetEl, source.actionType === 'repair' ? 'Repaired +1' : 'Quick Loaded');
+    tooltip(targetEl, source.actionType === 'repair' ? 'Repaired +1' : 'Quick Load');
     return true;
   }
 
@@ -97,8 +96,6 @@
     }
     utility.rollback = [];
     utility.used = {};
-    utility.quickLoaded.clear();
-    utility.quickLoadedFiring.clear();
     utility.selected = null;
   }
 
@@ -144,8 +141,6 @@
     decorateUtilities();
   };
 
-  // Utility rooms and their friendly targets own clicks while selected. Invalid clicks
-  // cancel the temporary state. A destroyed room explicitly reads as beyond repair.
   stage.addEventListener('click', e => {
     if(resolving() || state.exterior) return;
     const roomEl = e.target.closest && e.target.closest('.room[data-side="player"]');
@@ -187,20 +182,6 @@
   moveAft.addEventListener('click', () => { if(utility.selected){ utility.selected=null; refresh(); } });
   moveFore.addEventListener('click', () => { if(utility.selected){ utility.selected=null; refresh(); } });
 
-  // Snapshot Quick-Loaded weapons that are actually planned to fire before the async
-  // resolver clears player intents. mousedown occurs before the resolver's click handler.
-  const endTurnButton = stage.querySelector('.v3-end-turn');
-  if(endTurnButton){
-    endTurnButton.addEventListener('mousedown', () => {
-      utility.quickLoadedFiring = new Set(
-        [...utility.quickLoaded].filter(id => !!state.playerIntents[id])
-      );
-    }, true);
-  }
-
-  // Range safety: an intent is only valid if its fixed world-space aim falls inside
-  // the source weapon's real range. This prevents a Repeater (range 1), or any future
-  // weapon, from being re-aimed beyond its catalogue value.
   const baseEnemyIntentDistribution = enemyIntentDistribution;
   enemyIntentDistribution = function(playerState = playerIntentDistribution()){
     const saved = enemyIntents.slice();
@@ -218,7 +199,6 @@
   }
 
   function retargetEnemyIntentsInRange(){
-    // Remove any legacy / setup-specific intent whose source does not exist in this ship.
     for(let i=enemyIntents.length-1;i>=0;i--){
       if(!sourceEntity('enemy',enemyIntents[i].sourceId)) enemyIntents.splice(i,1);
     }
@@ -258,32 +238,15 @@
     });
   }
 
-  // Reset one-use room actions when a new turn begins. Quick Load only makes a gun
-  // ready now; if that gun fires, firing restarts its normal reload cadence.
   const observer = new MutationObserver(() => {
     const now = document.body.classList.contains('v3-resolving');
     if(!utility.wasResolving && now){
       utility.selected = null;
     }
     if(utility.wasResolving && !now){
-      if(window.combatTurn){
-        utility.quickLoadedFiring.forEach(id => {
-          const room = roomById(id);
-          const cadence = room?.weapon ? weapons[room.weapon]?.cadence : null;
-          if(!room || !cadence) return;
-          // Single-shot weapons must now spend their normal reload turn. This also
-          // overrides the old prototype's turn-one Heavy special case.
-          if((cadence.shotsBeforeReload || 1) === 1){
-            combatTurn.setWeaponState(id,{mode:'loading',remaining:cadence.reloadTurns || 1});
-          }
-        });
-      }
-
       state.turnStartMast = state.playerMastTrack;
       utility.used = {};
       utility.rollback = [];
-      utility.quickLoaded.clear();
-      utility.quickLoadedFiring.clear();
       utility.selected = null;
       retargetEnemyIntentsInRange();
       refresh();
