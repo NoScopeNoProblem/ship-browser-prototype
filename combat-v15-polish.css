@@ -1,0 +1,64 @@
+/* v15: transient dodge feedback, clearer danger and utility cancellation */
+
+/* Retire the persistent v14 dodge label. v15 creates a timed replacement. */
+.v14-dodged-tip{display:none!important}
+.v15-dodged-tip{
+  position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);z-index:98;
+  padding:5px 8px;border:1px solid rgba(70,88,94,.48);border-radius:4px;
+  background:rgba(245,241,229,.97);color:#526369;
+  font:900 9px/1 Arial,sans-serif;letter-spacing:.09em;pointer-events:none;
+  opacity:1;transition:opacity .65s ease,transform .65s ease;
+}
+.v15-dodged-tip.fade{opacity:0;transform:translate(-50%,-66%)}
+
+/* Player target assignment gets a short red confirmation flash on the enemy section. */
+.room.v15-player-target-flash,.mast-box.v15-player-target-flash{
+  animation:v15EnemyTargetFlash .72s ease-out both!important;
+}
+@keyframes v15EnemyTargetFlash{
+  0%{box-shadow:inset 0 0 0 1px rgba(184,59,51,.15)}
+  22%{box-shadow:inset 0 0 0 5px rgba(184,59,51,.92),0 0 0 3px rgba(184,59,51,.12)}
+  100%{box-shadow:inset 0 0 0 2px rgba(184,59,51,0)}
+}
+
+/* Magazine collateral is warm gold-red rather than the same red language as direct cannon fire. */
+.room.v15-explosion-threat{
+  background:repeating-linear-gradient(-45deg,rgba(194,116,54,.17),rgba(194,116,54,.17) 5px,rgba(207,146,79,.045) 5px,rgba(207,146,79,.045) 12px)!important;
+}
+.explosion-hit{color:#b76b2b!important;background:rgba(246,226,190,.72);border-radius:3px;padding:0 2px}
+.actual-explosion-icon{background:#f5dfbd!important;border-color:rgba(179,101,39,.68)!important;color:#ac632b!important}
+
+/* Lethal danger pulses faster and darker than ordinary incoming fire. */
+.room.v14-threat-active.v12-lethal-threat,.mast-box.v14-threat-active.v12-lethal-threat{
+  animation:v15LethalPulse .88s ease-in-out infinite!important;
+}
+@keyframes v15LethalPulse{
+  0%,100%{box-shadow:inset 0 0 0 3px rgba(126,29,27,.58)}
+  50%{box-shadow:inset 0 0 0 5px rgba(112,22,21,.92),0 0 0 2px rgba(112,22,21,.10)}
+}
+
+/* Carpenter target selection remains green even if a room also carries red danger on its border. */
+.room.v14-repair-source{background:rgba(84,165,107,.11)!important}
+.room.v14-repair-target{background:rgba(95,184,119,.18)!important}
+.room.v14-repair-target.v14-threat-active{background:rgba(95,184,119,.18)!important}
+
+/* If a revealed Carpenter is planned to die, show its repair link breaking and remove the heal chip. */
+.v11-enemy-action-chip.repair.cancelled{display:none!important}
+.v15-repair-cancel-overlay{
+  position:absolute;inset:0;width:100%;height:100%;z-index:67;pointer-events:none;overflow:visible;
+}
+.v15-repair-cancel-line{
+  stroke:rgba(55,143,82,.78);stroke-width:3;stroke-dasharray:7 5;filter:drop-shadow(0 1px 1px rgba(0,0,0,.12));
+}
+.v15-repair-cancel-x{
+  fill:#a33f38;stroke:#f5e8d8;stroke-width:3;paint-order:stroke fill;
+  font:900 28px/1 Arial,sans-serif;
+}
+.room.v15-repair-cancel-target{box-shadow:inset 0 0 0 2px rgba(83,137,94,.34)}
+
+/* There is only one repair-heart language: the persistent pip. */
+.v12-repair-pip,.v11-repair-pulse{display:none!important}
+
+/* No legacy blue dodge/prevent hatching anywhere. Live threat borders can still coexist. */
+.room.dodged:not(.enemy-intended),.room.prevented:not(.enemy-intended){background:rgba(255,255,255,.04)!important}
+.mast-box.dodged:not(.enemy-intended),.mast-box.prevented:not(.enemy-intended){background:rgba(255,255,255,.08)!important}
