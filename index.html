@@ -4,25 +4,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>High Seas Combat Prototype</title>
-  <link rel="stylesheet" href="styles.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v3-overrides.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v3-hotfix.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v5-actions.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v6-effects.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v7-targeting.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v8-scale.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v9-polish.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v11.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v12-polish.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v13-polish.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v14-polish.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v15-polish.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v17-manoeuvre.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v18-state-fixes.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v19-small-fixes.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v20-damage-feedback.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v21-hover-target.css?v=20260909ah" />
-  <link rel="stylesheet" href="combat-v22-utility-stats.css?v=20260909ah" />
+  <link rel="stylesheet" href="styles.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v3-overrides.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v3-hotfix.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v5-actions.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v6-effects.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v7-targeting.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v8-scale.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v9-polish.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v11.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v12-polish.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v13-polish.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v14-polish.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v15-polish.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v17-manoeuvre.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v18-state-fixes.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v19-small-fixes.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v20-damage-feedback.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v21-hover-target.css?v=20260909ai" />
+  <link rel="stylesheet" href="combat-v22-utility-stats.css?v=20260909ai" />
 </head>
 <body>
   <main class="app">
@@ -49,34 +49,34 @@
     </section>
     <section class="panel status-panel"><div><div class="eyebrow">Hovered / Selected</div><div id="weaponInfo" class="status-text">None</div></div><div><div class="eyebrow">Effect</div><div id="targetInfo" class="status-text">Hover an intent icon, or click a ready gun deck to plan a shot.</div></div></section>
   </main>
-  <script src="combat-v11-data.js?v=20260909ah"></script>
-  <script src="combat-v2-core.js?v=20260909ah"></script>
-  <script src="combat-v2-ui.js?v=20260909ah"></script>
-  <script src="combat-v2-controls.js?v=20260909ah"></script>
+  <script src="combat-v11-data.js?v=20260909ai"></script>
+  <script src="combat-v2-core.js?v=20260909ai"></script>
+  <script src="combat-v2-ui.js?v=20260909ai"></script>
+  <script src="combat-v2-controls.js?v=20260909ai"></script>
   <script>
     var enemyMastEl = enemyMastBox;
     function roomWidth(){ const el=enemyGrid.querySelector('.room'); return el ? el.getBoundingClientRect().width : ROOM_W(); }
   </script>
-  <script src="combat-v11-turn.js?v=20260909ah"></script>
-  <script src="combat-v3-layout-fix.js?v=20260909ah"></script>
-  <script src="combat-v4-hotfix.js?v=20260909ah"></script>
-  <script src="combat-v5-actions.js?v=20260909ah"></script>
-  <script src="combat-v6-effects.js?v=20260909ah"></script>
-  <script src="combat-v7-targeting.js?v=20260909ah"></script>
-  <script src="combat-v8-scale.js?v=20260909ah"></script>
-  <script src="combat-v9-polish.js?v=20260909ah"></script>
-  <script src="combat-v11-intentions.js?v=20260909ah"></script>
-  <script src="combat-v11-outcomes.js?v=20260909ah"></script>
-  <script src="combat-v12-polish.js?v=20260909ah"></script>
-  <script src="combat-v13-polish.js?v=20260909ah"></script>
-  <script src="combat-v14-polish.js?v=20260909ah"></script>
-  <script src="combat-v16-polish.js?v=20260909ah"></script>
-  <script src="combat-v17-manoeuvre.js?v=20260909ah"></script>
-  <script src="combat-v18-state-fixes.js?v=20260909ah"></script>
-  <script src="combat-v19-small-fixes.js?v=20260909ah"></script>
-  <script src="combat-v20-damage-feedback.js?v=20260909ah"></script>
-  <script src="combat-v21-hover-target.js?v=20260909ah"></script>
-  <script src="combat-v22-utility-stats.js?v=20260909ah"></script>
-  <script src="combat-v23-planning-state.js?v=20260909ah"></script>
+  <script src="combat-v11-turn.js?v=20260909ai"></script>
+  <script src="combat-v3-layout-fix.js?v=20260909ai"></script>
+  <script src="combat-v4-hotfix.js?v=20260909ai"></script>
+  <script src="combat-v5-actions.js?v=20260909ai"></script>
+  <script src="combat-v6-effects.js?v=20260909ai"></script>
+  <script src="combat-v7-targeting.js?v=20260909ai"></script>
+  <script src="combat-v8-scale.js?v=20260909ai"></script>
+  <script src="combat-v9-polish.js?v=20260909ai"></script>
+  <script src="combat-v11-intentions.js?v=20260909ai"></script>
+  <script src="combat-v11-outcomes.js?v=20260909ai"></script>
+  <script src="combat-v12-polish.js?v=20260909ai"></script>
+  <script src="combat-v13-polish.js?v=20260909ai"></script>
+  <script src="combat-v14-polish.js?v=20260909ai"></script>
+  <script src="combat-v16-polish.js?v=20260909ai"></script>
+  <script src="combat-v17-manoeuvre.js?v=20260909ai"></script>
+  <script src="combat-v18-state-fixes.js?v=20260909ai"></script>
+  <script src="combat-v19-small-fixes.js?v=20260909ai"></script>
+  <script src="combat-v20-damage-feedback.js?v=20260909ai"></script>
+  <script src="combat-v21-hover-target.js?v=20260909ai"></script>
+  <script src="combat-v22-utility-stats.js?v=20260909ai"></script>
+  <script src="combat-v23-planning-state.js?v=20260909ai"></script>
 </body>
 </html>
