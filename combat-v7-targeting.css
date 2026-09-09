@@ -8,20 +8,27 @@
 .room.destroyed-room .weapon-icon,.room.destroyed-room .room-sub,.room.destroyed-room .room-capacity{opacity:.48}
 .room.destroyed-room:hover,.mast-box.destroyed-room:hover{box-shadow:none!important}
 
-/* Friendly rooms with an available action get a small, persistent gold corner cue. */
+/* Friendly rooms with a currently usable action get an obvious gold READY badge. */
 .room[data-side="player"].action-ready::after{
-  content:'◆';
+  content:'✦  READY';
   position:absolute;
   right:5px;
-  top:26px;
+  top:27px;
   z-index:19;
-  color:#b97b20;
-  font:700 9px/1 Arial,sans-serif;
-  text-shadow:0 1px 0 rgba(255,255,255,.7);
+  min-width:54px;
+  padding:3px 5px;
+  border:1px solid rgba(185,123,32,.62);
+  border-radius:3px;
+  background:rgba(255,246,220,.94);
+  color:#9b6517;
+  font:800 9px/1 Arial,sans-serif;
+  letter-spacing:.05em;
+  text-align:center;
+  box-shadow:0 1px 2px rgba(0,0,0,.10);
   pointer-events:none;
 }
 .room[data-side="player"].action-ready:not(.enemy-intended):not(.dodged):not(.prevented){
-  box-shadow:inset 0 -2px 0 rgba(185,123,32,.42);
+  box-shadow:inset 0 -3px 0 rgba(185,123,32,.55);
 }
 
 /* Target selection: candidates stay subtle until hovered, then read very clearly. */
