@@ -1,0 +1,13 @@
+/* Combat room actions + legacy loading cleanup */
+.loading-badge,.loading-v3{display:none!important}
+
+.room[data-id="p_carp"],.room[data-id="p_mag"]{cursor:pointer}
+.room.utility-selected{box-shadow:inset 0 0 0 3px rgba(180,124,30,.95)!important;background:rgba(188,145,76,.13)!important}
+.room.utility-target{box-shadow:inset 0 0 0 3px rgba(66,126,154,.92)!important;background:rgba(78,128,165,.14)!important;cursor:pointer}
+.room.utility-used{background-image:linear-gradient(rgba(70,88,88,.055),rgba(70,88,88,.055))}
+.utility-used-badge{position:absolute;right:6px;top:6px;z-index:24;padding:2px 5px;border:1px solid rgba(62,91,91,.56);border-radius:2px;background:rgba(238,231,214,.96);color:#3b5959;font:800 8px/1 Arial,sans-serif;letter-spacing:.06em;pointer-events:none}
+.utility-used-badge .tick{font-size:11px;margin-right:2px}
+.room.utility-unavailable{cursor:default;opacity:.78}
+
+/* Make the compact load badge the only loading treatment. */
+.loading-v4{display:flex!important}
