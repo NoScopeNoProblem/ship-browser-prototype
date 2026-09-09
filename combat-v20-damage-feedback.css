@@ -1,0 +1,45 @@
+/* v20: explicit damage-type visuals + robust Mast MISS placement */
+
+/* Damage types are semantic classes emitted by combatDamage.renderIntentPips(). */
+.pips span[data-damage-type="cannon"]{
+  color:#c14137!important;
+  font-weight:900;
+}
+.pips span[data-damage-type="explosive"]{
+  color:#a95f25!important;
+  background:rgba(248,221,174,.96)!important;
+  border-radius:3px;
+  padding:0 2px;
+  font-weight:900!important;
+  box-shadow:inset 0 0 0 1px rgba(183,104,37,.30);
+}
+
+/* Mast miss lives in the vacated world-column, directly above the player's hull. */
+.v20-mast-miss-marker{
+  position:absolute;
+  z-index:420;
+  transform:translate(-50%,-50%);
+  min-width:92px;
+  min-height:38px;
+  padding:6px 10px;
+  border:2px solid rgba(67,125,174,.96);
+  border-radius:4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  background:rgba(229,241,250,.995);
+  color:#356f9b;
+  box-shadow:0 4px 12px rgba(0,0,0,.22);
+  pointer-events:auto;
+  animation:v20MastMissIn .24s ease-out both;
+}
+.v20-mast-miss-marker b{
+  font:900 12px/1 Arial,sans-serif;
+  letter-spacing:.12em;
+}
+.v20-mast-miss-marker .weapon-icon{color:#356f9b!important}
+@keyframes v20MastMissIn{
+  from{opacity:0;transform:translate(-50%,-50%) scale(.78)}
+  to{opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
