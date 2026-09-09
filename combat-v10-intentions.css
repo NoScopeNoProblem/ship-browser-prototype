@@ -107,6 +107,7 @@ body.v10-intent-preview-active .room,
 body.v10-intent-preview-active .mast-box,
 body.v10-intent-preview-active .move-btn,
 body.v10-intent-preview-active .v3-end-turn{pointer-events:none!important}
+.room.v10-preview-unrevealed .loading-v4{visibility:hidden!important}
 
 .v10-intent-tracer-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:94;pointer-events:none;overflow:visible}
 .v10-intent-tracer{
