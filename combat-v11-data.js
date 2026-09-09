@@ -29,7 +29,8 @@ const SHIP_SETUPS = {
     ]
   },
   ironGull: {
-    id:'ironGull', name:'THE IRON GULL', columns:4, rows:2, mastColumn:1, mastHp:3,
+    id:'ironGull', name:'THE IRON GULL', threatStars:3, testExpectation:'Starter ship can win; experienced play should find avoiding all damage difficult.',
+    columns:4, rows:2, mastColumn:1, mastHp:3,
     rooms:[
       {id:'e_std', type:'gun', name:'STANDARD', sub:'Cannon', row:0, col:0, hp:2, weapon:'standard'},
       {id:'e_heavy', type:'gun', name:'HEAVY', sub:'Cannon', row:0, col:1, hp:4, weapon:'heavy'},
@@ -49,7 +50,15 @@ const SHIP_SETUPS = {
   }
 };
 
-const COMBAT_SETUP = {trackColumns:7, playerShip:'wayward', enemyShip:'ironGull', playerMastTrack:3, enemyMastTrack:3};
+// Matchups can now be selected without changing engine code. Future enemy definitions only
+// need to be added to SHIP_SETUPS and can then be loaded with ?enemy=<id>. The same hook is
+// already available for player builds via ?player=<id> when we begin testing those.
+const COMBAT_PARAMS = new URLSearchParams(window.location.search);
+const REQUESTED_PLAYER = COMBAT_PARAMS.get('player');
+const REQUESTED_ENEMY = COMBAT_PARAMS.get('enemy');
+const ACTIVE_PLAYER_ID = REQUESTED_PLAYER && SHIP_SETUPS[REQUESTED_PLAYER] ? REQUESTED_PLAYER : 'wayward';
+const ACTIVE_ENEMY_ID = REQUESTED_ENEMY && SHIP_SETUPS[REQUESTED_ENEMY] ? REQUESTED_ENEMY : 'ironGull';
+const COMBAT_SETUP = {trackColumns:7, playerShip:ACTIVE_PLAYER_ID, enemyShip:ACTIVE_ENEMY_ID, playerMastTrack:3, enemyMastTrack:3};
 const weapons = WEAPON_ARCHETYPES;
 const PLAYER_SHIP_SETUP = SHIP_SETUPS[COMBAT_SETUP.playerShip];
 const ENEMY_SHIP_SETUP = SHIP_SETUPS[COMBAT_SETUP.enemyShip];
