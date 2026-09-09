@@ -10,8 +10,8 @@
 }
 .v17-mast-action span{font:900 12px/1 Arial,sans-serif}.v17-mast-action b{font:inherit}
 .v17-mast-action.ready{border-color:rgba(45,128,79,.68);background:rgba(226,245,229,.98);color:#2c764a}
-.v17-mast-action.used{border-color:rgba(60,110,145,.68);background:rgba(227,239,247,.98);color:#3c6f91}
-.v17-mast-action.cooldown{border-color:rgba(117,105,72,.55);background:rgba(235,230,211,.98);color:#756b4f}
+.v17-mast-action.used{border-color:rgba(91,98,99,.45);background:rgba(231,229,221,.96);color:#687174;filter:grayscale(.75);opacity:.64}
+.v17-mast-action.cooldown{min-width:57px;border-color:rgba(117,105,72,.55);background:rgba(235,230,211,.98);color:#756b4f}
 .v17-mast-action.locked,.v17-mast-action.disabled{filter:grayscale(.55);opacity:.72}
 
 /* Cooldown means there are no candidate movement cells this turn. Keep the occupied cell neutral;
@@ -39,3 +39,30 @@
   0%,100%{box-shadow:inset 0 0 0 2px rgba(58,126,174,.28),0 0 0 0 rgba(58,126,174,0)}
   50%{box-shadow:inset 0 0 0 4px rgba(58,126,174,.88),0 0 0 3px rgba(58,126,174,.12)}
 }
+
+/* A friendly Magazine projected to die reads as the source of the blast, not merely another red target. */
+.v16-explosion-link-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:82;pointer-events:none;overflow:visible}
+.room.v16-magazine-primed{
+  background:radial-gradient(circle at 50% 52%,rgba(245,187,81,.26),rgba(215,111,48,.10) 52%,rgba(255,255,255,.02) 76%)!important;
+  box-shadow:inset 0 0 0 3px rgba(205,119,47,.58)!important
+}
+.room.v16-explosion-burst{animation:v16MagazineBurst .9s ease-out both!important}
+@keyframes v16MagazineBurst{
+  0%{box-shadow:inset 0 0 0 2px rgba(205,119,47,.42),0 0 0 0 rgba(236,156,65,0)}
+  24%{box-shadow:inset 0 0 0 6px rgba(197,91,40,.94),0 0 0 8px rgba(236,156,65,.18)}
+  58%{box-shadow:inset 0 0 0 4px rgba(220,133,47,.78),0 0 0 3px rgba(236,156,65,.11)}
+  100%{box-shadow:inset 0 0 0 3px rgba(205,119,47,.58),0 0 0 0 rgba(236,156,65,0)}
+}
+.v16-explosion-badge{
+  position:absolute;left:50%;top:53%;transform:translate(-50%,-50%);z-index:112;
+  display:flex;align-items:center;gap:4px;padding:5px 7px;border-radius:4px;
+  border:1px solid rgba(172,87,34,.74);background:rgba(250,226,181,.97);color:#a75b25;
+  font:900 8px/1 Arial,sans-serif;letter-spacing:.07em;pointer-events:none;
+  animation:v16ExplosionBadge .9s ease-out both
+}
+.v16-explosion-badge span{font-size:16px}.v16-explosion-badge b{font:inherit}
+@keyframes v16ExplosionBadge{0%{opacity:0;transform:translate(-50%,-50%) scale(.72)}18%,68%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-58%) scale(1.08)}}
+.v16-explosion-link{stroke:rgba(205,113,45,.82);stroke-width:3.5;stroke-dasharray:8 5;filter:drop-shadow(0 1px 1px rgba(90,45,19,.15));animation:v16BlastLink .9s ease-out both}
+@keyframes v16BlastLink{0%{opacity:0;stroke-dashoffset:24}20%,70%{opacity:1}100%{opacity:0;stroke-dashoffset:-18}}
+.room.v16-explosion-impact{animation:v16ExplosionImpact .82s ease-out both!important}
+@keyframes v16ExplosionImpact{0%{box-shadow:inset 0 0 0 0 rgba(211,126,47,0)}30%{box-shadow:inset 0 0 0 5px rgba(211,126,47,.72)}100%{box-shadow:inset 0 0 0 0 rgba(211,126,47,0)}}
