@@ -5,7 +5,18 @@ function clearPlayerTurnPlans(){
   state.hoverIntent=null;
 }
 
+function movementBlockedReason(direction){
+  if(playerMast.hp<=0) return 'Mast destroyed';
+  const minThisTurn=Math.max(PLAYER_MAST_MIN,state.turnStartMast-1);
+  const maxThisTurn=Math.min(PLAYER_MAST_MAX,state.turnStartMast+1);
+  if(direction<0 && state.playerMastTrack<=minThisTurn) return state.playerMastTrack<=PLAYER_MAST_MIN ? null : 'Movement used';
+  if(direction>0 && state.playerMastTrack>=maxThisTurn) return state.playerMastTrack>=PLAYER_MAST_MAX ? null : 'Movement used';
+  return null;
+}
+
 function moveLeft(){
+  const reason=movementBlockedReason(-1);
+  if(reason){ showRoomTooltip(playerMastBox,reason); refresh(); return; }
   if(state.playerMastTrack>PLAYER_MAST_MIN){
     clearPlayerTurnPlans();
     state.playerMastTrack--;
@@ -13,6 +24,8 @@ function moveLeft(){
   }
 }
 function moveRight(){
+  const reason=movementBlockedReason(1);
+  if(reason){ showRoomTooltip(playerMastBox,reason); refresh(); return; }
   if(state.playerMastTrack<PLAYER_MAST_MAX){
     clearPlayerTurnPlans();
     state.playerMastTrack++;
@@ -20,7 +33,7 @@ function moveRight(){
   }
 }
 function resetTurn(){
-  state.playerMastTrack=INITIAL_PLAYER_MAST_TRACK;
+  state.playerMastTrack=state.turnStartMast;
   state.playerIntents={};
   state.selectedWeaponId=null;
   state.hoveredWeapon=null;
