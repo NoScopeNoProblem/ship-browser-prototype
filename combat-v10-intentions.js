@@ -81,6 +81,8 @@
     return room.hp-plannedDamageTo(room.id)<=0;
   }
 
+  const utilityCancelSeen=new Map();
+
   function clearThreatDensity(){
     document.querySelectorAll('[data-threat-count]').forEach(el=>el.removeAttribute('data-threat-count'));
   }
@@ -157,6 +159,14 @@
     if(!preview.active) return true;
     return preview.revealedUtilities.has(action.id||`${action.sourceId}:${action.actionType}:${action.targetId}:${index}`);
   }
+  function decoratePreviewConcealment(){
+    enemyRooms.filter(room=>room.weapon).forEach(room=>{
+      const el=getEntityElement('enemy',room.id);
+      if(!el) return;
+      el.classList.toggle('v10-preview-unrevealed',preview.active&&!preview.revealedSources.has(room.id));
+    });
+  }
+
   function renderEnemyUtilityIntents(){
     document.querySelectorAll('.v10-enemy-action-chip').forEach(node=>node.remove());
     (window.enemyActionIntents||[]).forEach((action,index)=>{
@@ -167,6 +177,12 @@
       const chip=document.createElement('div');
       const type=action.actionType==='repair'?'repair':'quickLoad';
       const cancelled=utilityIntentCancelled(action);
+      const key=action.id||`${action.sourceId}:${action.actionType}:${action.targetId}:${index}`;
+      const source=enemyRooms.find(room=>room.id===action.sourceId)||null;
+      if(cancelled&&!utilityCancelSeen.get(key)&&knownUtilitySource(source)){
+        setTimeout(()=>showRoomTooltip(targetEl,'Cancelled'),0);
+      }
+      utilityCancelSeen.set(key,cancelled);
       chip.className=`v10-enemy-action-chip ${type}${cancelled?' cancelled':''}`;
       chip.textContent=type==='repair'?'♥ REPAIR':'↻ QUICK LOAD';
       chip.title=cancelled?'Cancelled':(type==='repair'?'Enemy repair':'Enemy quick load');
@@ -191,6 +207,7 @@
     if(newlyRevealed.length) renderShips();
     previousRefresh();
     decorateThreatDensity();
+    decoratePreviewConcealment();
     decorateOverviewSources();
     renderEnemyUtilityIntents();
     newlyRevealed.forEach(id=>{
@@ -424,7 +441,8 @@
       window.enemyActionIntents.push({...action});
       refresh();
     },
-    utilityIntentCancelled
+    utilityIntentCancelled,
+    activeEnemyActions(){ return (window.enemyActionIntents||[]).filter(action=>!utilityIntentCancelled(action)); }
   };
 
   // Initial battle presentation: TURN overlay from v9, then intentions, then YOUR TURN.
