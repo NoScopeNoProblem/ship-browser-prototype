@@ -60,6 +60,9 @@
   }
 
   function markExplosionPips(side, explosionMap){
+    // v20 owns projected damage-type rendering. Once it is loaded, never repaint generic
+    // hit pips here: doing so can turn a direct cannon hit into a second explosion marker.
+    if(window.combatDamage) return;
     explosionMap.forEach((count, id) => {
       const pips = pipContainer(side, id);
       if(!pips) return;
