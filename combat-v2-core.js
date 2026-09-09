@@ -20,14 +20,16 @@ function sourceWorld(side, entity){
 
 function getTargetsForWeapon(side, weaponEntity){
   const w = weapons[weaponEntity.weapon];
+  if(!w) return [];
+  const range = w.range ?? w.arc ?? 0;
   const sw = sourceWorld(side, weaponEntity);
   const results = [];
   if(side==='player'){
-    enemyRooms.forEach(r => { if(Math.abs(enemyWorldCol(r.col)-sw) <= w.arc) results.push(r); });
-    if(Math.abs(ENEMY_MAST_TRACK-sw) <= w.arc) results.push(enemyMast);
+    enemyRooms.forEach(r => { if(Math.abs(enemyWorldCol(r.col)-sw) <= range) results.push(r); });
+    if(Math.abs(ENEMY_MAST_TRACK-sw) <= range) results.push(enemyMast);
   } else {
-    playerRooms.forEach(r => { if(Math.abs(playerWorldCol(r.col)-sw) <= w.arc) results.push(r); });
-    if(Math.abs(state.playerMastTrack-sw) <= w.arc) results.push(playerMast);
+    playerRooms.forEach(r => { if(Math.abs(playerWorldCol(r.col)-sw) <= range) results.push(r); });
+    if(Math.abs(state.playerMastTrack-sw) <= range) results.push(playerMast);
   }
   return results;
 }
@@ -35,15 +37,17 @@ function getTargetsForWeapon(side, weaponEntity){
 function enemyIntentInRange(intent){
   const source = sourceEntity('enemy', intent.sourceId);
   if(!source || !source.weapon) return false;
-  return Math.abs(intent.targetWorld - sourceWorld('enemy', source)) <= weapons[source.weapon].arc;
+  const w = weapons[source.weapon];
+  const range = w?.range ?? w?.arc ?? 0;
+  return Math.abs(intent.targetWorld - sourceWorld('enemy', source)) <= range;
 }
 
 function projectedEnemyImpact(intent){
   return enemyIntentInRange(intent) ? entityAtWorld(intent.lane, intent.targetWorld) : null;
 }
 function originalEnemyImpact(intent){
-  const originalLeftmost = INITIAL_PLAYER_MAST_TRACK - PLAYER_MAST_LOCAL_COL;
-  if(intent.lane==='mast') return intent.targetWorld===INITIAL_PLAYER_MAST_TRACK ? playerMast : null;
+  const originalLeftmost = state.turnStartMast - PLAYER_MAST_LOCAL_COL;
+  if(intent.lane==='mast') return intent.targetWorld===state.turnStartMast ? playerMast : null;
   return playerRooms.find(r => r.row===intent.lane && originalLeftmost+r.col===intent.targetWorld) || null;
 }
 
@@ -71,6 +75,8 @@ function roomHtml(r){
 
 function renderTrack(){
   trackRow.innerHTML='';
+  trackRow.style.gridTemplateColumns=`repeat(${TRACK_COLS},var(--trackW))`;
+  trackRow.style.width=`calc(var(--trackW)*${TRACK_COLS})`;
   for(let i=0;i<TRACK_COLS;i++){
     const c=document.createElement('div');
     c.className='track-cell';
@@ -89,6 +95,7 @@ function isPlayerEntityCurrentlyTargeted(id){
 }
 
 function showRoomTooltip(el,text){
+  if(!el) return;
   el.querySelectorAll('.range-tooltip').forEach(n=>n.remove());
   const tip=document.createElement('div');
   tip.className='range-tooltip';
@@ -99,16 +106,21 @@ function showRoomTooltip(el,text){
 }
 
 function makeRoom(r,side){
+  const setup = side==='enemy' ? ENEMY_SHIP_SETUP : PLAYER_SHIP_SETUP;
   const el=document.createElement('div');
   el.className='room'+(r.weapon?' weapon':'');
   el.dataset.id=r.id;
   el.dataset.side=side;
+  el.dataset.row=String(r.row);
+  el.dataset.col=String(r.col);
+  el.dataset.lastCol=String(r.col===setup.columns-1);
+  el.dataset.lastRow=String(r.row===setup.rows-1);
   el.innerHTML=roomHtml(r);
 
   if(side==='player'){
     if(r.weapon){
       el.addEventListener('mouseenter',()=>{
-        if(state.exterior || isPlayerEntityCurrentlyTargeted(r.id)) return;
+        if(state.exterior || isPlayerEntityCurrentlyTargeted(r.id) || r.hp<=0) return;
         state.hoveredWeapon={side,id:r.id}; refresh();
       });
       el.addEventListener('mouseleave',()=>{
@@ -117,6 +129,7 @@ function makeRoom(r,side){
       el.addEventListener('click',(e)=>{
         e.stopPropagation();
         if(state.exterior) return;
+        if(r.hp<=0){ state.selectedWeaponId=null; state.hoveredWeapon=null; refresh(); showRoomTooltip(el,'Disabled'); return; }
         if(r.loading){ state.selectedWeaponId=null; state.hoveredWeapon=null; refresh(); showRoomTooltip(el,'Loading'); return; }
         state.hoveredWeapon=null;
         state.selectedWeaponId=state.selectedWeaponId===r.id?null:r.id;
@@ -126,7 +139,7 @@ function makeRoom(r,side){
   } else {
     if(r.weapon){
       el.addEventListener('mouseenter',()=>{
-        if(state.exterior || state.selectedWeaponId) return;
+        if(state.exterior || state.selectedWeaponId || r.hp<=0) return;
         state.hoveredWeapon={side,id:r.id}; refresh();
       });
       el.addEventListener('mouseleave',()=>{
@@ -136,7 +149,8 @@ function makeRoom(r,side){
     el.addEventListener('click',(e)=>{
       if(state.exterior || !state.selectedWeaponId) return;
       e.stopPropagation();
-      if(isLegalTarget(r.id)) state.playerIntents[state.selectedWeaponId]=r.id;
+      if(r.hp<=0){ showRoomTooltip(el,'Cannot target'); }
+      else if(isLegalTarget(r.id)) state.playerIntents[state.selectedWeaponId]=r.id;
       else showRoomTooltip(el,'Not in range');
       state.selectedWeaponId=null;
       state.hoveredWeapon=null;
@@ -148,15 +162,25 @@ function makeRoom(r,side){
 
 function renderShips(){
   enemyGrid.innerHTML=''; playerGrid.innerHTML='';
+  enemyGrid.style.gridTemplateColumns=`repeat(${ENEMY_SHIP_SETUP.columns},var(--roomW))`;
+  enemyGrid.style.gridTemplateRows=`repeat(${ENEMY_SHIP_SETUP.rows},var(--roomH))`;
+  playerGrid.style.gridTemplateColumns=`repeat(${PLAYER_SHIP_SETUP.columns},var(--roomW))`;
+  playerGrid.style.gridTemplateRows=`repeat(${PLAYER_SHIP_SETUP.rows},var(--roomH))`;
   enemyRooms.forEach(r=>enemyGrid.appendChild(makeRoom(r,'enemy')));
   playerRooms.forEach(r=>playerGrid.appendChild(makeRoom(r,'player')));
   enemyMastPips.innerHTML=pipsMarkup(enemyMast);
   playerMastPips.innerHTML=pipsMarkup(playerMast);
 
+  const enemyName=document.querySelector('.enemy-corner');
+  const playerName=document.querySelector('.player-corner');
+  if(enemyName) enemyName.textContent=`ENEMY — ${ENEMY_SHIP_SETUP.name}`;
+  if(playerName) playerName.textContent=`YOUR SHIP — ${PLAYER_SHIP_SETUP.name}`;
+
   enemyMastBox.onclick=(e)=>{
     if(state.exterior || !state.selectedWeaponId) return;
     e.stopPropagation();
-    if(isLegalTarget(enemyMast.id)) state.playerIntents[state.selectedWeaponId]=enemyMast.id;
+    if(enemyMast.hp<=0) showRoomTooltip(enemyMastBox,'Cannot target');
+    else if(isLegalTarget(enemyMast.id)) state.playerIntents[state.selectedWeaponId]=enemyMast.id;
     else showRoomTooltip(enemyMastBox,'Not in range');
     state.selectedWeaponId=null;
     state.hoveredWeapon=null;
@@ -171,8 +195,12 @@ function positionShips(){
   const mastWidth=84;
   enemyMastBox.style.left=`${ENEMY_MAST_COL*w+(w-mastWidth)/2}px`;
   playerMastBox.style.left=`${PLAYER_MAST_LOCAL_COL*w+(w-mastWidth)/2}px`;
-  moveAft.disabled=state.playerMastTrack<=PLAYER_MAST_MIN;
-  moveFore.disabled=state.playerMastTrack>=PLAYER_MAST_MAX;
+
+  const mastDisabled=playerMast.hp<=0;
+  const minThisTurn=Math.max(PLAYER_MAST_MIN,state.turnStartMast-1);
+  const maxThisTurn=Math.min(PLAYER_MAST_MAX,state.turnStartMast+1);
+  moveAft.disabled=mastDisabled || state.playerMastTrack<=minThisTurn;
+  moveFore.disabled=mastDisabled || state.playerMastTrack>=maxThisTurn;
 }
 
 function worldColX(col){ return TRACK_LEFT+col*ROOM_W(); }
