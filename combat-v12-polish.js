@@ -21,7 +21,7 @@
     for(let i = 0; i < hits && cursor >= 0; i++, cursor--){
       arr[cursor] = '<span class="hit intent-crosshair" title="Intended damage">⌖</span>';
     }
-    // Dodges are communicated by the blue room hatching only; do not spend a health pip on them.
+    // Dodges no longer consume a health pip; movement feedback is handled by the board UI.
     for(let i = 0; i < prevented && cursor >= 0; i++, cursor--){
       arr[cursor] = '<span class="prevented-mark" title="Prevented: enemy action cancelled">⊘</span>';
     }
@@ -178,6 +178,7 @@
 
   const endTurn = stage.querySelector('.v3-end-turn');
   let endWarningArmed = false;
+  let endWarningTimer = null;
   let lastActionKey = '';
   function actionStateKey(){
     const plans = Object.entries(state.playerIntents || {}).sort().map(([a,b]) => `${a}:${b}`).join('|');
@@ -188,12 +189,19 @@
     document.querySelectorAll('.v12-action-reminder').forEach(el => el.classList.remove('v12-action-reminder'));
     stage.querySelectorAll('.v12-end-tip').forEach(n => n.remove());
   }
+  function disarmEndWarning(){
+    endWarningArmed = false;
+    if(endWarningTimer){ clearTimeout(endWarningTimer); endWarningTimer = null; }
+    if(endTurn) endTurn.textContent = 'END TURN';
+    clearActionReminder();
+  }
   function decorateEndTurn(){
     if(!endTurn) return;
     const key = actionStateKey();
-    if(lastActionKey && key !== lastActionKey){ endWarningArmed = false; clearActionReminder(); }
+    if(lastActionKey && key !== lastActionKey) disarmEndWarning();
     lastActionKey = key;
     const pending = pendingActionRooms();
+    if(!pending.length && endWarningArmed) disarmEndWarning();
     endTurn.classList.toggle('v12-end-ready', !window.combatEnded && pending.length === 0);
     endTurn.classList.toggle('v12-end-has-actions', pending.length > 0);
   }
@@ -202,9 +210,13 @@
     pending.forEach(room => getEntityElement('player', room.id)?.classList.add('v12-action-reminder'));
     const tip = document.createElement('div');
     tip.className = 'v12-end-tip';
-    tip.textContent = 'Actions remain — end anyway?';
+    tip.textContent = 'Actions remain — confirm?';
     stage.appendChild(tip);
-    nativeSetTimeout(() => tip.remove(), 1800);
+    if(endTurn) endTurn.textContent = 'CONFIRM?';
+    if(endWarningTimer) clearTimeout(endWarningTimer);
+    endWarningTimer = nativeSetTimeout(() => {
+      if(endWarningArmed) disarmEndWarning();
+    }, 2400);
   }
 
   function decorateAll(){
@@ -257,11 +269,23 @@
     endTurn.addEventListener('click', e => {
       if(window.combatEnded || window.combatTurn?.resolving || document.body.classList.contains('v11-intent-preview-active')) return;
       const pending = pendingActionRooms();
-      if(!pending.length){ endWarningArmed = false; clearActionReminder(); return; }
-      if(endWarningArmed){ endWarningArmed = false; clearActionReminder(); return; }
+      if(!pending.length){ disarmEndWarning(); return; }
+      if(endWarningArmed){
+        // This click is the explicit confirmation. Let the underlying End Turn handler run.
+        disarmEndWarning();
+        return;
+      }
       e.preventDefault(); e.stopImmediatePropagation();
       endWarningArmed = true;
       showEndWarning(pending);
+    }, true);
+
+    // E mirrors the End Turn button. If a warning is active, the second E confirms it.
+    window.addEventListener('keydown', e => {
+      if(e.code !== 'KeyE' || e.repeat) return;
+      if(window.combatEnded || window.combatTurn?.resolving || document.body.classList.contains('v11-intent-preview-active')) return;
+      e.preventDefault();
+      endTurn.click();
     }, true);
   }
 
@@ -288,6 +312,7 @@
     enemyIntents.splice(0, enemyIntents.length);
     window.enemyActionIntents = [];
     state.hoverIntent = null; state.overview = null;
+    disarmEndWarning();
     clearEnemyIntentVisuals();
     nativeSetTimeout(clearEnemyIntentVisuals, 0);
   });
