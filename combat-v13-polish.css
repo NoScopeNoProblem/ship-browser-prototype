@@ -1,0 +1,36 @@
+/* v13: repair pips and mast-intent legibility */
+
+/* A repaired pip stays visibly repaired until that pip is damaged again. */
+.pips .v13-repaired-heart{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:25px;height:21px;padding:1px 3px;margin:-2px 0;
+  border:1px solid rgba(47,125,76,.68);border-radius:3px;
+  background:rgba(220,244,224,.96);color:#277343!important;
+  font:900 12px/1 Arial,sans-serif;letter-spacing:-.04em;
+  vertical-align:middle;position:relative;z-index:70;
+}
+
+/* Repair animation must always sit above the hull rather than disappearing behind it. */
+.v12-repair-pip{z-index:130!important;pointer-events:none!important}
+.room .pips{z-index:60}
+.ship-grid,.ship-block{overflow:visible!important}
+
+/* Intent chips on a mast live above its health meter. */
+.mast-box .intent-stack{
+  top:-35px!important;bottom:auto!important;right:50%!important;
+  transform:translateX(50%);flex-direction:row!important;z-index:95!important;
+}
+.mast-box .intent-chip{min-width:27px;min-height:22px;box-shadow:0 1px 3px rgba(0,0,0,.14)}
+
+/* Restored miss state, including shots left behind when the targeted mast moves. */
+.miss-marker.v13-restored-miss{
+  display:flex!important;visibility:visible!important;opacity:1!important;
+  z-index:88!important;border:2px dashed rgba(77,119,151,.78)!important;
+  background:rgba(231,242,248,.96)!important;color:#356d91!important;
+  pointer-events:auto!important;
+}
+.miss-marker.v13-mast-miss{transform:translateY(-13px)}
+.miss-marker.v13-restored-miss .miss-text{color:#356d91!important;font-weight:900!important;letter-spacing:.08em}
+
+/* Keep the actual mast health readable even during threat/friendly-intent states. */
+.mast-box .pips{position:relative;z-index:72!important;background:rgba(239,233,218,.76);border-radius:3px;padding:1px 3px}
