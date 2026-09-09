@@ -1,0 +1,57 @@
+/* v19: strategic feedback polish */
+
+/* Enemy repair already lives in the health row; do not duplicate it above the pips. */
+.room[data-side="enemy"] .v11-enemy-action-chip.repair{display:none!important}
+
+/* Give Quick Load its own readable beat and a full 360-degree rotation. */
+.room[data-side="enemy"].v19-quickload-active{
+  animation:v19QuickLoadRoom 1.15s ease-in-out both!important;
+}
+.room[data-side="enemy"].v19-quickload-source{
+  animation:v19QuickLoadSource 1.05s ease-in-out both!important;
+}
+.v19-quickload-spin{
+  position:absolute;left:50%;top:56%;z-index:58;transform:translate(-50%,-50%);
+  min-width:96px;padding:7px 9px;border:2px solid rgba(45,132,78,.78);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  background:rgba(226,246,229,.97);color:#287347;pointer-events:none;
+  box-shadow:0 3px 10px rgba(0,0,0,.16);
+}
+.v19-quickload-spin span{
+  display:inline-block;font:900 23px/1 Arial,sans-serif;
+  animation:v19QuickLoadRotate 1.05s ease-in-out both;
+}
+.v19-quickload-spin b{font:900 9px/1 Arial,sans-serif;letter-spacing:.08em;white-space:nowrap}
+@keyframes v19QuickLoadRotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes v19QuickLoadRoom{
+  0%,100%{box-shadow:none;background-color:transparent}
+  22%,72%{box-shadow:inset 0 0 0 5px rgba(45,132,78,.82);background-color:rgba(190,236,199,.22)}
+}
+@keyframes v19QuickLoadSource{
+  0%,100%{box-shadow:none}
+  35%,70%{box-shadow:inset 0 0 0 3px rgba(45,132,78,.52)}
+}
+
+/* A Mast dodge gets an explicit marker in the world-column the Mast vacated. */
+.v19-mast-miss{
+  position:absolute;z-index:190;transform:translate(-50%,-50%);
+  min-width:86px;min-height:34px;padding:5px 9px;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  border:2px solid rgba(67,125,174,.88);border-radius:4px;
+  background:rgba(229,241,250,.98);color:#356f9b;pointer-events:auto;
+  box-shadow:0 3px 10px rgba(0,0,0,.18);
+  animation:v19MastMissIn .28s ease-out both;
+}
+.v19-mast-miss strong{font:900 12px/1 Arial,sans-serif;letter-spacing:.1em}
+.v19-mast-miss .weapon-icon{color:#356f9b}
+@keyframes v19MastMissIn{
+  from{opacity:0;transform:translate(-50%,-50%) scale(.78)}
+  to{opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
+
+/* Keep explosion damage visually distinct from direct cannon crosshairs. */
+.pips span.explosion-hit{
+  color:#a95f25!important;background:rgba(248,221,174,.96)!important;
+  border-radius:3px;padding:0 2px;font-weight:900!important;
+  box-shadow:inset 0 0 0 1px rgba(183,104,37,.30);
+}
