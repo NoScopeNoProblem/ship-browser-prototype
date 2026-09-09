@@ -1,0 +1,134 @@
+/* v9 polish: larger board, clearer action/readiness language, turn presentation */
+:root{
+  --roomW:146px;
+  --roomH:122px;
+  --trackW:146px;
+}
+.app{max-width:1380px}
+.room{padding:12px 12px 8px}
+.room-title{font-size:12px}
+.room-sub{font-size:11px}
+.room .pips{left:12px;bottom:9px}
+.room-capacity{right:11px;bottom:10px}
+.intent-stack{right:9px;top:46px}
+.track-row{height:34px}
+.track-chevrons .move-btn{width:34px;height:34px}
+
+/* READY no longer sits on top of room text. The whole heading reserves space for it. */
+.room[data-side="player"].action-ready::after{
+  content:'✦ READY';
+  right:7px;
+  top:7px;
+  min-width:60px;
+  padding:4px 6px;
+  font-size:9px;
+}
+.room[data-side="player"].action-ready>.room-title,
+.room[data-side="player"].action-ready .weapon-heading{padding-right:68px!important}
+.room[data-side="player"].action-ready .weapon-heading .room-title{padding-right:0!important}
+
+.room[data-side="player"].action-used::after{
+  content:'✓ USED';
+  position:absolute;
+  right:7px;
+  top:7px;
+  z-index:19;
+  min-width:60px;
+  padding:4px 6px;
+  border:1px solid rgba(82,99,101,.5);
+  border-radius:3px;
+  background:rgba(235,232,219,.95);
+  color:#586769;
+  font:800 9px/1 Arial,sans-serif;
+  letter-spacing:.05em;
+  text-align:center;
+  pointer-events:none;
+}
+.room[data-side="player"].action-used>.room-title,
+.room[data-side="player"].action-used .weapon-heading{padding-right:68px!important}
+.room[data-side="player"].action-used .weapon-heading .room-title{padding-right:0!important}
+
+/* Intended damage is a crosshair, not an already-landed damage X. */
+.intent-crosshair{font-size:18px;line-height:1;color:#bd433b!important}
+
+/* Track communicates the one-step movement budget before the player clicks. */
+.track-cell.track-unreachable{
+  background:repeating-linear-gradient(-45deg,rgba(71,80,81,.10),rgba(71,80,81,.10) 6px,rgba(139,144,141,.18) 6px,rgba(139,144,141,.18) 12px)!important;
+  filter:grayscale(.85);
+  opacity:.48;
+}
+.track-cell.track-reachable{opacity:1}
+
+/* Overview range layer. Loading, disabled and miss states keep information visible but muted. */
+.v9-range-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:17;pointer-events:none;overflow:visible}
+.v9-range{stroke-width:1.5;vector-effect:non-scaling-stroke;fill-opacity:.06}
+.v9-range.enemy.live{stroke:rgba(190,67,59,.58);fill:rgba(190,67,59,.11)}
+.v9-range.player.live{stroke:rgba(56,112,151,.60);fill:rgba(56,112,151,.11)}
+.v9-range.loading,.v9-range.disabled,.v9-range.miss{
+  stroke:rgba(82,94,96,.72)!important;
+  fill:rgba(82,94,96,.07)!important;
+  stroke-dasharray:8 6;
+}
+.v9-range.loading{opacity:.78}
+.v9-range.disabled{opacity:.58}
+.v9-range.miss{opacity:.72}
+body.v9-range-held .arc-overlay,
+body.v9-range-held .v4-arc-overlay{opacity:0!important}
+
+/* Single enemy hover/intention arc also greys out when that shot is a miss. */
+.v4-arc.enemy.miss,.v4-arc.enemy.loading{
+  stroke:rgba(82,94,96,.72)!important;
+  fill:rgba(82,94,96,.07)!important;
+  stroke-dasharray:8 6;
+}
+
+/* Turn number sits directly under End Turn. */
+.v9-turn-number{
+  position:absolute;
+  right:18px;
+  top:454px;
+  z-index:30;
+  width:96px;
+  text-align:center;
+  color:#566467;
+  font:800 10px/1 Arial,sans-serif;
+  letter-spacing:.12em;
+  pointer-events:none;
+}
+
+.v9-turn-intro{
+  display:none;
+  position:absolute;
+  inset:0;
+  z-index:100;
+  align-items:center;
+  justify-content:center;
+  background:rgba(19,39,42,.16);
+  pointer-events:auto;
+}
+.v9-turn-intro.visible{display:flex}
+.v9-turn-intro-card{
+  min-width:250px;
+  padding:24px 34px;
+  border:2px solid rgba(37,55,57,.72);
+  background:rgba(242,234,216,.97);
+  box-shadow:0 12px 34px rgba(0,0,0,.2);
+  text-align:center;
+  color:#263b3e;
+  font:800 34px/1 Georgia,serif;
+  letter-spacing:.12em;
+  animation:v9TurnIn .9s ease both;
+}
+@keyframes v9TurnIn{
+  0%{opacity:0;transform:scale(.9)}
+  18%,76%{opacity:1;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.035)}
+}
+body.v9-turn-intro-active .v3-end-turn,
+body.v9-turn-intro-active .move-btn{pointer-events:none!important}
+
+/* Slightly larger board remains responsive rather than forcing a desktop-sized grid on small screens. */
+@media(max-width:1120px){
+  :root{--roomW:124px;--roomH:108px;--trackW:124px}
+  .app{max-width:1160px}
+}
