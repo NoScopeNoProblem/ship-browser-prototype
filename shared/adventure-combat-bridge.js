@@ -28,13 +28,13 @@
   }
   updateResources();window.addEventListener('adventure-storage-changed',updateResources);
 
-  function showCargoLost(side,room,lost={}){
+  function showCargoLost(side,room,lost={},pulse=true){
     const el=typeof getEntityElement==='function'?getEntityElement(side,room.id):null;
     if(!el)return;
     const parts=Object.entries(lost).filter(([,qty])=>qty>0).map(([item,qty])=>`${qty} ${item==='cannonballs'?'Cannonball':item}${qty===1?'':'s'}`);
     el.classList.add('v32-cargo-lost');
     el.title=side==='player'?(parts.length?`CARGO LOST — ${parts.join(', ')}. Destroying a Hold destroys everything stored in it.`:'CARGO LOST — destroying a Hold destroys everything stored in it.'):'CARGO LOST — a destroyed enemy Hold loses its contents.';
-    if(typeof showRoomTooltip==='function')showRoomTooltip(el,'CARGO LOST');
+    if(pulse&&typeof showRoomTooltip==='function')showRoomTooltip(el,'CARGO LOST');
   }
 
   function syncDestroyedHolds(){
@@ -43,14 +43,15 @@
     for(const side of ['player','enemy']){
       const rooms=side==='player'?playerRooms:enemyRooms;
       for(const room of rooms){
-        if(room.kind!=='storage'||room.hp>0||seenDestroyed.has(room.id))continue;
-        seenDestroyed.add(room.id);
-        if(side==='player')needsCapture=true;else showCargoLost(side,room,{});
+        if(room.kind!=='storage'||room.hp>0)continue;
+        const isNew=!seenDestroyed.has(room.id);if(isNew)seenDestroyed.add(room.id);
+        if(side==='player'){if(isNew)needsCapture=true;else showCargoLost(side,room,{},false);}
+        else showCargoLost(side,room,{},isNew);
       }
     }
     if(needsCapture){
       const result=Voyage.captureCombat(playerRooms,playerMast)||{};mergeLost(result.cargoLost);
-      for(const room of playerRooms.filter(r=>r.kind==='storage'&&r.hp<=0))if(seenDestroyed.has(room.id))showCargoLost('player',room,result.cargoLost||{});
+      for(const room of playerRooms.filter(r=>r.kind==='storage'&&r.hp<=0))if(seenDestroyed.has(room.id))showCargoLost('player',room,result.cargoLost||{},true);
     }
   }
 
