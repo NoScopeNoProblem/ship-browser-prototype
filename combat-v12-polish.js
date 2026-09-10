@@ -36,23 +36,7 @@
   function weaponReady(room){ return !!(room?.weapon && room.hp > 0 && window.combatTurn?.isReady(room.id)); }
   function utilityUsed(room){ return !!(window.combatUtility && combatUtility.isUsed(room.id)); }
   function utilityAvailable(room){ return !!(window.combatUtility && combatUtility.isAvailable(room)); }
-
-  function normalizeEnemyRepairTargets(){
-    const actions = window.enemyActionIntents || [];
-    actions.filter(a => a.actionType === 'repair').forEach(action => {
-      const source = enemyRooms.find(r => r.id === action.sourceId);
-      if(!source || source.hp <= 0) return;
-      const candidates = enemyRooms.filter(r =>
-        r.hp > 0 && r.hp < r.max &&
-        Math.abs(r.col - source.col) <= 1 && Math.abs(r.row - source.row) <= 1
-      ).sort((a,b) => {
-        const missing = (b.max - b.hp) - (a.max - a.hp); if(missing) return missing;
-        const ratio = (a.hp / a.max) - (b.hp / b.max); if(ratio) return ratio;
-        return (a.col - b.col) || (a.row - b.row);
-      });
-      if(candidates[0]) action.targetId = candidates[0].id;
-    });
-  }
+  function isUtility(room){ return !!room && room.actionType && room.actionType !== 'fire'; }
 
   function animateRepairPip(room, repairedIndex){
     const el = roomElement(room);
@@ -93,18 +77,23 @@
     });
   }
 
+  function utilityPresentation(room, used, available){
+    if(room.actionType === 'repair') return {icon:'♥+', title:used?'Repair used this turn':available?'Repair available':'No repair target'};
+    if(room.actionType === 'quickLoad') return {icon:'↻+', title:used?'Quick Load used this turn':available?'Quick Load available':'No loading adjacent gun'};
+    if(room.actionType === 'resetSails') return {icon:'⛵↻', title:used?'Reset Sails used this turn':available?'Reset Sails available':'Sails do not need resetting'};
+    if(room.actionType === 'brace') return {icon:'⛨', title:used?'Brace used this turn':available?'Brace available':'No unbraced target in reach'};
+    return {icon:'•', title:'Support action'};
+  }
   function decorateUtilityIcons(){
     document.querySelectorAll('.v12-utility-icon').forEach(n => n.remove());
-    playerRooms.filter(r => r.actionType === 'repair' || r.actionType === 'quickLoad').forEach(room => {
+    playerRooms.filter(isUtility).forEach(room => {
       const el = getEntityElement('player', room.id); if(!el) return;
       el.classList.add('v12-utility-room');
-      const used = utilityUsed(room), available = utilityAvailable(room);
+      const used = utilityUsed(room), available = utilityAvailable(room), p = utilityPresentation(room,used,available);
       const icon = document.createElement('div');
       icon.className = `v12-utility-icon ${room.actionType}${available && !used ? ' ready' : ' faded'}${used ? ' spent' : ''}`;
-      icon.textContent = room.actionType === 'repair' ? '♥+' : '↻+';
-      icon.title = room.actionType === 'repair'
-        ? (used ? 'Repair used this turn' : available ? 'Repair available' : 'No repair target')
-        : (used ? 'Quick Load used this turn' : available ? 'Quick Load available' : 'No loading adjacent gun');
+      icon.textContent = p.icon;
+      icon.title = p.title;
       el.appendChild(icon);
     });
   }
@@ -171,7 +160,7 @@
   function pendingActionRooms(){
     return playerRooms.filter(room => {
       if(room.actionType === 'fire') return gunActionAvailable(room);
-      if(room.actionType === 'repair' || room.actionType === 'quickLoad') return utilityAvailable(room) && !utilityUsed(room);
+      if(isUtility(room)) return utilityAvailable(room) && !utilityUsed(room);
       return false;
     });
   }
@@ -182,7 +171,7 @@
   let lastActionKey = '';
   function actionStateKey(){
     const plans = Object.entries(state.playerIntents || {}).sort().map(([a,b]) => `${a}:${b}`).join('|');
-    const used = playerRooms.filter(r => (r.actionType === 'repair' || r.actionType === 'quickLoad') && utilityUsed(r)).map(r => r.id).sort().join('|');
+    const used = playerRooms.filter(r => isUtility(r) && utilityUsed(r)).map(r => r.id).sort().join('|');
     return `${state.playerMastTrack}/${plans}/${used}`;
   }
   function clearActionReminder(){
@@ -229,7 +218,8 @@
 
   const baseRefresh = refresh;
   refresh = function(){
-    normalizeEnemyRepairTargets();
+    // Enemy utility targets are immutable once the turn plan is built. Presentation must never
+    // retarget them during a refresh; the enemy intention controller owns all target selection.
     const repairs = collectRepairs();
     baseRefresh();
     decorateAll();
