@@ -76,7 +76,7 @@
   }
   function roomDescription(entity){
     if(entity.weapon)return weaponDescription(entity);
-    if(entity.kind==='storage')return 'General Storage. Three cargo slots. Each slot holds up to 12 Food, 3 Cannonballs, 4 Timber, or one Medicine crate.';
+    if(entity.kind==='storage')return 'General Storage. Three cargo slots. Each slot holds up to 12 Food, 3 Cannonballs, 4 Timber, or one Medicine crate. CARGO LOST: destroying this Hold destroys everything stored in it.';
     if(entity.kind==='magazine')return 'Magazine. Two Cannonball-only slots, up to 3 balls in each. QUICK LOAD readies one orthogonally adjacent loading Gun Deck. Destroying the Magazine damages surrounding rooms.';
     if(entity.kind==='carpenter')return 'Carpenter. One Timber-only slot holding up to 4. REPAIR restores 1 pip to a living room and spends 1 Timber in Adventure combat.';
     if(entity.kind==='sailmaster')return 'Sailmaster. RESET SAILS clears the Mast Resetting cooldown so Manoeuvre can be used again this turn.';
