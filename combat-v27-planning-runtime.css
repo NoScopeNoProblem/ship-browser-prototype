@@ -10,9 +10,29 @@ body.v27-planning-runtime.v9-range-held #arcOverlay{display:none!important}
 body.v27-planning-runtime .room[data-side="player"].utility-selected,
 body.v27-planning-runtime .room[data-side="player"].utility-target,
 body.v27-planning-runtime .room[data-side="player"].v14-repair-source,
-body.v27-planning-runtime .room[data-side="player"].v14-repair-target{
+body.v27-planning-runtime .room[data-side="player"].v14-repair-target,
+body.v27-planning-runtime .player-mast.utility-target{
   background:rgba(190,236,199,.34)!important;
   background-image:none!important;
+}
+body.v27-planning-runtime .player-mast.utility-target{
+  box-shadow:inset 0 0 0 3px rgba(67,143,91,.92)!important;
+  cursor:pointer;
+}
+body.v27-planning-runtime .v12-utility-room{cursor:pointer}
+
+/* Brace is a real current-turn status on a health pip, not an extra temporary prediction.
+   The titanium heart sits over the rightmost current pip while the green surround reads as protection. */
+body.v27-planning-runtime .pips span.v31-brace-heart{position:relative;overflow:visible}
+body.v27-planning-runtime .pips span.v31-brace-heart::after{
+  content:'♥';
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  min-width:17px;height:17px;padding:1px 2px;
+  display:flex;align-items:center;justify-content:center;
+  color:#c6ced1;background:rgba(67,132,82,.48);
+  border:1px solid rgba(104,190,124,.96);border-radius:4px;
+  box-shadow:0 0 0 2px rgba(90,165,108,.15),inset 0 0 0 1px rgba(230,244,234,.16);
+  font:900 12px/1 Arial,sans-serif;z-index:8;pointer-events:none;
 }
 
 /* The final Mast badge is always the single current manoeuvre state. */
