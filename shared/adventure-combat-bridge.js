@@ -5,6 +5,7 @@
   const Voyage=window.HighSeasShipVoyage||null;
   const shipUrl=()=>new URL('../ship/?postCombat=1',window.location.href).toString();
   const worldUrl=()=>new URL('../world/',window.location.href).toString();
+  const startingDamage=Voyage?.missingBlips?.(Voyage.load())||0;
 
   // This sits in the top-right combat HUD, not below the fold. Adventure mode only.
   const resources=document.createElement('div');
@@ -91,15 +92,22 @@
 
   let ending=false;
   window.addEventListener('combat-ended',event=>{
-    if(ending)return;ending=true;syncRepairSpend();syncDestroyedHolds();
+    if(ending)return;ending=true;
+    // The core outcome card becomes visible immediately before this event. Hide that legacy final
+    // card synchronously so Adventure mode transitions straight to the ship report without a flash.
+    document.body.classList.add('v33-adventure-exit');
+    syncRepairSpend();syncDestroyedHolds();
     const finalCapture=Voyage?.captureCombat?.(playerRooms,playerMast)||{};mergeLost(finalCapture.cargoLost);
-    const finalUndamaged=[playerMast,...playerRooms].every(entity=>entity.hp>=entity.max);
+    const finalState=Voyage?.load?.();
+    const damageRemaining=Voyage?.missingBlips?.(finalState)||0;
+    const damageTaken=Math.max(0,damageRemaining-startingDamage+(Number(used.timber)||0));
+    const finalUndamaged=damageRemaining===0;
     const kind=event.detail?.kind||'unknown',won=kind==='sunk'||kind==='surrender'||kind==='victory';
     const resultTier=won&&finalUndamaged?(used.timber===0?'perfect':'noDamage'):'standard';
-    const detail={...(event.detail||{}),report:{resourcesUsed:{...used},cargoLost:{...cargoLost},resultTier,finalUndamaged}};
+    const detail={...(event.detail||{}),report:{resourcesUsed:{...used},cargoLost:{...cargoLost},resultTier,finalUndamaged,startingDamage,damageTaken,damageRemaining}};
     Adventure.recordCombatResult(detail);
     if(Voyage&&(detail.kind==='sunk'||detail.kind==='surrender'||detail.kind==='victory'))Voyage.recordCombatScore(resultTier);
-    setTimeout(()=>{window.location.href=shipUrl();},180);
+    window.location.replace(shipUrl());
   });
 
   const endButton=document.querySelector('.v28-end-combat');
