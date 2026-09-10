@@ -156,16 +156,17 @@
   function center(el){const sr=stage.getBoundingClientRect(),r=el.getBoundingClientRect();return{x:r.left-sr.left+r.width/2,y:r.top-sr.top+r.height/2};}
   function missPoint(intent){
     const pg=playerGrid.getBoundingClientRect(),sg=stage.getBoundingClientRect();
-    if(intent.lane==='mast'){
-      const mast=playerMastBox.getBoundingClientRect();
-      return {x:worldColX(intent.targetWorld)+roomWidth()/2,y:mast.top-sg.top+mast.height/2};
-    }
-    const rows=Math.max(1,PLAYER_SHIP_SETUP.rows||1);
-    return{x:worldColX(intent.targetWorld)+roomWidth()/2,y:pg.top-sg.top+(Number(intent.lane)+.5)*(pg.height/rows)};
+    if(intent.lane==='mast'){const mast=playerMastBox.getBoundingClientRect();return {x:worldColX(intent.targetWorld)+roomWidth()/2,y:mast.top-sg.top+mast.height/2};}
+    const rows=Math.max(1,PLAYER_SHIP_SETUP.rows||1);return{x:worldColX(intent.targetWorld)+roomWidth()/2,y:pg.top-sg.top+(Number(intent.lane)+.5)*(pg.height/rows)};
   }
   async function animateBall(fromEl,to,side,outcome){const a=center(fromEl),b=to instanceof Element?center(to):to;const ball=document.createElement('div');ball.className=`v3-ball ${side}`;ball.style.left=`${a.x}px`;ball.style.top=`${a.y}px`;projectileLayer.appendChild(ball);cannonSound();await wait(20);ball.style.transform=`translate(${b.x-a.x}px,${b.y-a.y}px)`;await wait(360);if(outcome==='miss')splashSound();else splinterSound();ball.style.opacity='0';await wait(90);ball.remove();}
   async function floatNote(el,text,cls=''){const sr=stage.getBoundingClientRect(),r=el.getBoundingClientRect();const note=document.createElement('div');note.className=`v3-resolve-note ${cls}`;note.textContent=text;note.style.left=`${r.left-sr.left+r.width/2}px`;note.style.top=`${r.top-sr.top+r.height/2}px`;floatLayer.appendChild(note);await wait(520);note.remove();}
-  function applyDamage(entity,amount){const before=entity.hp;entity.hp=Math.max(0,entity.hp-amount);return before>0&&entity.hp===0;}
+  function actualWeaponDamage(room,target,fallback){const weapon=weapons[room?.weapon];if(target?.kind==='mast'&&Number.isFinite(weapon?.mastDamage))return Number(weapon.mastDamage);return Math.max(0,Number(fallback??weapon?.damage??0)||0);}
+  function applyDamage(entity,amount,side){
+    const blocked=Math.min(amount,Math.max(0,Number(window.combatBrace?.consume?.(side,entity.id,amount)||0))),applied=Math.max(0,amount-blocked),before=entity.hp;
+    entity.hp=Math.max(0,entity.hp-applied);
+    return {destroyed:before>0&&entity.hp===0,blocked,applied};
+  }
   function setLoadingAfterFire(room){const cadence=cadenceFor(room),s=wstate(room.id),shots=Math.max(1,cadence.shotsBeforeReload||1);s.shotsLeft=(s.shotsLeft??shots)-1;if(s.shotsLeft<=0){const reloadTurns=Math.max(0,cadence.reloadTurns??1);if(reloadTurns>0){s.mode='loading';s.remaining=reloadTurns;}else{s.mode='ready';}s.shotsLeft=shots;}else{s.mode='ready';}}
   function finishLoadsThatStartedTurn(loadingIds){loadingIds.forEach(id=>{const s=wstate(id);if(s.mode!=='loading')return;s.remaining=(s.remaining||1)-1;if(s.remaining<=0){const room=roomForWeaponId(id);s.mode='ready';delete s.remaining;s.shotsLeft=Math.max(1,cadenceFor(room).shotsBeforeReload||1);}});}
 
@@ -183,11 +184,12 @@
       if(!isReady(room)){await floatNote(getEntityElement('player',room.id),'LOADING');logLine(`${colorSpan('player',weapons[room.weapon].name)} is loading.`);continue;}
       const targetId=plans[room.id];if(!targetId)continue;const target=sourceEntity('enemy',targetId);if(!target||target.hp<=0)continue;
       await animateBall(getEntityElement('player',room.id),getEntityElement('enemy',target.id),'player','hit');
-      const destroyed=applyDamage(target,weapons[room.weapon].damage);renderShips();refresh();
-      logLine(`${colorSpan('player',weapons[room.weapon].name)} fires at ${colorSpan('enemy',target.name)} doing ${weapons[room.weapon].damage} damage. ${target.hp} of ${target.max} blips left${destroyed?` <b>(${target.name} destroyed — action cancelled)</b>`:''}.`);
-      if(destroyed)await floatNote(getEntityElement('enemy',target.id),'DESTROYED','destroyed');
+      const rawDamage=actualWeaponDamage(room,target,weapons[room.weapon].damage),result=applyDamage(target,rawDamage,'enemy');renderShips();refresh();
+      if(result.blocked)await floatNote(getEntityElement('enemy',target.id),'BRACED −1');
+      logLine(`${colorSpan('player',weapons[room.weapon].name)} fires at ${colorSpan('enemy',target.name)} doing ${result.applied} damage${result.blocked?` (${result.blocked} braced)`:''}. ${target.hp} of ${target.max} blips left${result.destroyed?` <b>(${target.name} destroyed — action cancelled)</b>`:''}.`);
+      if(result.destroyed)await floatNote(getEntityElement('enemy',target.id),'DESTROYED','destroyed');
       setLoadingAfterFire(room);loadingAtStart.delete(room.id);
-      if(await runAfterDamageHook({side:'enemy',entity:target,source:room,turn:resolvingTurn,destroyed,logLine,floatNote})){endResolutionForCombatEnd();return;}
+      if(await runAfterDamageHook({side:'enemy',entity:target,source:room,turn:resolvingTurn,destroyed:result.destroyed,damage:result.applied,blocked:result.blocked,logLine,floatNote})){endResolutionForCombatEnd();return;}
       await wait(110);
     }
 
@@ -202,8 +204,10 @@
       const intent=enemyIntents.find(i=>i.sourceId===room.id&&!i.inactive);if(!intent)continue;const impact=projectedEnemyImpact(intent);
       if(!impact){await animateBall(getEntityElement('enemy',room.id),missPoint(intent),'enemy','miss');logLine(`${colorSpan('enemy',weapons[room.weapon].name)} fires and ${colorSpan('player','misses')}.`);setLoadingAfterFire(room);loadingAtStart.delete(room.id);await wait(90);continue;}
       await animateBall(getEntityElement('enemy',room.id),getEntityElement('player',impact.id),'enemy','hit');
-      const destroyed=applyDamage(impact,intent.damage);renderShips();refresh();logLine(`${colorSpan('enemy',weapons[room.weapon].name)} fires at ${colorSpan('player',impact.name)} doing ${intent.damage} damage. ${impact.hp} of ${impact.max} blips left${destroyed?` <b>(${impact.name} destroyed)</b>`:''}.`);setLoadingAfterFire(room);loadingAtStart.delete(room.id);
-      if(await runAfterDamageHook({side:'player',entity:impact,source:room,turn:resolvingTurn,destroyed,logLine,floatNote})){endResolutionForCombatEnd();return;}
+      const rawDamage=actualWeaponDamage(room,impact,intent.damage),result=applyDamage(impact,rawDamage,'player');renderShips();refresh();
+      if(result.blocked)await floatNote(getEntityElement('player',impact.id),'BRACED −1');
+      logLine(`${colorSpan('enemy',weapons[room.weapon].name)} fires at ${colorSpan('player',impact.name)} doing ${result.applied} damage${result.blocked?` (${result.blocked} braced)`:''}. ${impact.hp} of ${impact.max} blips left${result.destroyed?` <b>(${impact.name} destroyed)</b>`:''}.`);setLoadingAfterFire(room);loadingAtStart.delete(room.id);
+      if(await runAfterDamageHook({side:'player',entity:impact,source:room,turn:resolvingTurn,destroyed:result.destroyed,damage:result.applied,blocked:result.blocked,logLine,floatNote})){endResolutionForCombatEnd();return;}
       await wait(110);
     }
 
