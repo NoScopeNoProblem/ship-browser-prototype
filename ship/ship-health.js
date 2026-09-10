@@ -47,8 +47,9 @@
 
     balanceCard.innerHTML=`<div><span class="side-kicker">STORAGE RISK</span><strong>Auto-balance between Holds</strong><p>When there is space, resources split between cargo Holds so one destroyed Hold does not wipe the whole stack. Shops still calculate capacity from total quantities and virtual compacting, so this balancing never creates a false “no space” result.</p></div><label class="toggle v32-balance-toggle" title="When there is space, resources split between cargo Holds. Shop and reward capacity checks look at total quantities and how tightly they could be compacted, not the current split."><input type="checkbox"><span></span></label><button type="button" class="v32-balance-now">BALANCE NOW</button>`;
     const toggle=balanceCard.querySelector('input');toggle.checked=!!state.shipSettings?.autoBalanceCargo;
-    toggle.addEventListener('change',()=>{Voyage.setAutoBalance(toggle.checked);decorate();});
-    balanceCard.querySelector('.v32-balance-now').addEventListener('click',()=>{Voyage.rebalance();decorate();});
+    toggle.addEventListener('change',()=>{Adventure.setAutoSort?.(toggle.checked);Voyage.setAutoBalance(toggle.checked);decorate();});
+    const balanceNow=balanceCard.querySelector('.v32-balance-now');balanceNow.disabled=!toggle.checked;balanceNow.title=toggle.checked?'Re-distribute stores across living Holds now':'Enable Auto-balance first';
+    balanceNow.addEventListener('click',()=>{Voyage.rebalance();decorate();});
   }
 
   function decorate(){
