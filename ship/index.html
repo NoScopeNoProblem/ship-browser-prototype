@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>High Seas — Ship Management</title>
+  <link rel="stylesheet" href="../shared/room-art.css?v=20260910a" />
+  <link rel="stylesheet" href="ship.css?v=20260910a" />
+</head>
+<body>
+  <main class="ship-shell">
+    <header class="game-hud">
+      <div class="hud-title"><span>SHIP MANAGEMENT</span><h1>THE WAYWARD</h1></div>
+      <div class="hud-strip" aria-label="Adventure resources">
+        <div><span>DAY</span><b id="dayValue">1</b></div>
+        <div><span>COIN</span><b id="coinValue">3</b></div>
+        <div><span>FOOD</span><b id="foodValue">6</b></div>
+        <div><span>BALLS</span><b id="ballValue">6</b></div>
+        <div><span>TIMBER</span><b id="timberValue">4</b></div>
+      </div>
+      <nav><a href="../world/">RETURN TO CHART</a><a href="../">MAIN MENU</a></nav>
+    </header>
+
+    <section class="management-layout">
+      <div class="ship-board">
+        <div class="board-copy"><div><span>SHIP INTERIOR</span><strong>Move whole stacks by drag-and-drop, or click a stack then click a destination slot.</strong></div><div class="range-hint">Hold <kbd>X</kbd> · firing arcs</div></div>
+        <div class="faint-track" id="faintTrack" aria-label="Seven-cell combat alignment reference"></div>
+        <div class="ship-canvas" id="shipCanvas">
+          <div class="mast-card" id="mastCard"><span>MAIN MAST</span><b>3</b></div>
+          <div class="ship-grid" id="shipGrid"></div>
+          <svg class="range-overlay" id="rangeOverlay" aria-hidden="true"></svg>
+        </div>
+        <div class="overflow-strip" id="overflowStrip" hidden></div>
+      </div>
+
+      <aside class="management-side">
+        <section class="auto-sort-card">
+          <div><span class="side-kicker">AFTER COMBAT</span><strong>Automatic stores sorting</strong><p>When enabled, returning from combat refills Cannonballs into the Magazine and Timber into the Carpenter first, then packs remaining cargo into Holds.</p></div>
+          <label class="toggle" title="Enabled by default. This only automatically sorts when combat ends; you can still arrange cargo manually here."><input id="autoSortToggle" type="checkbox" checked><span></span></label>
+          <button id="sortNow" type="button">SORT NOW</button>
+        </section>
+
+        <section class="room-inspector" id="roomInspector">
+          <div class="inspector-art art-hold" id="inspectorArt"></div>
+          <div class="inspector-copy">
+            <span class="side-kicker">ROOM / SYSTEM</span>
+            <h2 id="inspectorTitle">GENERAL STORAGE</h2>
+            <p id="inspectorText">Three flexible cargo slots. Food, Cannonballs, Timber and Medicine can be stored here.</p>
+            <div class="special-cargo" id="specialCargo"></div>
+          </div>
+          <div class="inspector-slots">
+            <span class="side-kicker">STORAGE</span>
+            <div id="inspectorSlots" class="slot-row"></div>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script src="../shared/ship-storage.js?v=20260910a"></script>
+  <script src="../shared/adventure-state.js?v=20260910a"></script>
+  <script src="ship.js?v=20260910a"></script>
+</body>
+</html>
