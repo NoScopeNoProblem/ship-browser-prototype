@@ -11,7 +11,9 @@
     quick.textContent=missing?`CARPENTER · REPAIR ALL · 🪵 ${missing}`:'CARPENTER · SHIP FULLY REPAIRED';
     quick.disabled=!carp||missing===0||timber<missing;
     quick.title=!carp?"Carpenter's Workshop is destroyed":missing===0?'No damage to repair':timber<missing?`Need ${missing} Timber; ${timber} aboard`:`At-sea quick repair: restore all ${missing} missing blips for ${missing} Timber`;
-    const mast=Voyage.roomHealth('p_mast',state);if(sail&&mast?.hp<=0){sail.disabled=true;sail.title='Main Mast destroyed — repair it in Ship Management before sailing.';}
+    const mast=Voyage.roomHealth('p_mast',state);
+    if(sail&&mast?.hp<=0){sail.disabled=true;sail.title='Main Mast destroyed — repair it in Ship Management before sailing.';}
+    else if(sail){sail.title='';const next=document.getElementById('nextLeg');if(next&&next.textContent.trim()!=='—'&&state.status==='active')sail.disabled=false;}
   }
   quick.addEventListener('click',()=>{const result=Voyage.repairAll();if(!result?.ok&&result?.reason)quick.title=result.reason;updateQuickRepair();const state=Voyage.load();const t=document.getElementById('timberValue');if(t)t.textContent=state.stores.timber;});
 
@@ -26,6 +28,7 @@
   function decorateMarket(){
     if(!modal)return;
     const state=Voyage.load();
+    const copy=modal.querySelector('.modal-head p');if(copy&&copy.textContent.includes('Storage limits are not enforced'))copy.textContent=copy.textContent.replace('Storage limits are not enforced in this map pass.','Purchases now respect fitted storage capacity; Auto-balance checks use total quantities and virtual compacting.');
     modal.querySelectorAll('.market-row').forEach(row=>{
       const entry=itemFromRow(row);if(!entry)return;const [itemId,amount]=entry,button=row.querySelector('button.buy,.medicine-trade-button');if(!button)return;
       const fit=Voyage.maxAdditional(itemId,amount,state),capacityBlocked=fit<amount;
