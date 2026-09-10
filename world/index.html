@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>High Seas — The First Sea</title>
   <link rel="stylesheet" href="world.css?v=20260910bb" />
+  <link rel="stylesheet" href="world-trade.css?v=20260910a" />
 </head>
 <body>
   <main class="world-shell">
@@ -17,7 +18,7 @@
         <div><span>BALLS</span><b id="ballValue">6</b></div>
         <div><span>TIMBER</span><b id="timberValue">4</b></div>
       </div>
-      <nav class="top-actions"><a href="../">MAIN MENU</a><button id="resetAdventure" type="button">RESET RUN</button></nav>
+      <nav class="top-actions"><a href="../ship/">SHIP MANAGEMENT</a><a href="../">MAIN MENU</a><button id="resetAdventure" type="button">RESET RUN</button></nav>
     </header>
 
     <section class="world-layout">
@@ -40,16 +41,17 @@
         <button class="sail-button" id="sailNext" type="button" disabled>SAIL NEXT LEG</button>
         <button class="small-action" id="clearRoute" type="button" disabled>CLEAR ROUTE</button>
         <div class="rule"></div>
-        <div class="future-note"><b>VOYAGE MODEL</b><p>Normal passages are 2 days. Favourable passages are 1 day; adverse passages are 3. The Wayward currently consumes 4 Food per sailing day. Food and cannonballs may go negative in this prototype so we can observe the economy before enforcing hard limits.</p></div>
+        <div class="future-note"><b>VOYAGE MODEL</b><p>Normal passages are 2 days. Favourable passages are 1 day; adverse passages are 3. The Wayward currently consumes 4 Food per sailing day. Capacity and shortage hard-stops remain disabled while the cargo economy is being calibrated.</p></div>
       </aside>
     </section>
   </main>
 
   <div class="modal-layer" id="modalLayer" hidden><section class="modal-card" id="modalCard" role="dialog" aria-modal="true"></section></div>
 
-  <script src="../shared/ship-storage.js?v=20260910bc"></script>
-  <script src="../shared/adventure-state.js?v=20260910bc"></script>
+  <script src="../shared/ship-storage.js?v=20260910a"></script>
+  <script src="../shared/adventure-state.js?v=20260910a"></script>
   <script src="world-data.js?v=20260910bb"></script>
   <script src="world.js?v=20260910bb"></script>
+  <script src="world-trade.js?v=20260910a"></script>
 </body>
 </html>
