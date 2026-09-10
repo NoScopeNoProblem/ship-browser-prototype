@@ -71,6 +71,7 @@
     state.stores=Storage.totals(state.storage);
     const medCount=Math.max(0,Math.floor(Number(state.stores.medicine)||0));
     if(state.trade?.medicineLots)state.trade.medicineLots=state.trade.medicineLots.slice(0,medCount);
+    if(Object.keys(lost).length)bumpInventory(state);
     return lost;
   }
 
@@ -107,7 +108,7 @@
       if(!target)return {ok:false,reason:'Unknown ship section'};
       if(target.hp>=target.max)return {ok:false,reason:'Already fully repaired'};
       if(Number(state.stores.timber)<1)return {ok:false,reason:'Requires 1 Timber'};
-      Storage.removeItem(state.storage,'timber',1,{preferredRoomIds:['p_carp','p_hold1','p_hold2']});state.stores=Storage.totals(state.storage);target.hp+=1;
+      Storage.removeItem(state.storage,'timber',1,{preferredRoomIds:['p_carp','p_hold1','p_hold2']});state.stores=Storage.totals(state.storage);target.hp+=1;bumpInventory(state);
       return {ok:true,cost:1,targetId,hp:target.hp,max:target.max};
     }).result;
   }
@@ -120,7 +121,7 @@
       Storage.removeItem(state.storage,'timber',missing,{preferredRoomIds:['p_carp','p_hold1','p_hold2']});state.stores=Storage.totals(state.storage);
       state.shipHealth.mast.hp=state.shipHealth.mast.max;
       for(const room of Object.values(state.shipHealth.rooms))room.hp=room.max;
-      return {ok:true,cost:missing};
+      bumpInventory(state);return {ok:true,cost:missing};
     }).result;
   }
 
@@ -290,16 +291,27 @@
     }).result;
   }
 
-  // World keeps a long-lived in-memory state. If another screen/helper changes inventory while
-  // that page is open, preserve the newer inventory on its next Adventure.save call.
-  const publicSave=Adventure.save.bind(Adventure);
+  // World keeps one long-lived state object. Shared helpers can update physical inventory in
+  // between its saves, so merge the world's direct total deltas onto the newest physical state
+  // rather than letting either side overwrite the other.
+  const publicSave=Adventure.save.bind(Adventure),saveSnapshots=new WeakMap();
   Adventure.save=function(state){
     if(state&&typeof state==='object'){
-      const latest=Adventure.load();
+      const latest=Adventure.load(),previous=saveSnapshots.get(state);
       if((Number(latest.inventoryRevision)||0)>(Number(state.inventoryRevision)||0)){
-        state.inventoryRevision=latest.inventoryRevision;state.storage=clone(latest.storage);state.stores={...latest.stores};
-        state.coins=latest.coins;state.trade=clone(latest.trade);state.shipSettings={...latest.shipSettings};state.shipHealth=clone(latest.shipHealth);state.scoreStats=clone(latest.scoreStats);
+        const merged=clone(latest.storage);let changed=false;
+        if(previous?.stores){
+          for(const itemId of Object.keys(Storage.ITEMS)){
+            const delta=(Number(state.stores?.[itemId])||0)-(Number(previous.stores?.[itemId])||0);
+            if(delta){Storage.setTotal(merged,itemId,Storage.total(merged,itemId)+delta);changed=true;}
+          }
+        }
+        state.storage=merged;state.stores=Storage.totals(merged);state.inventoryRevision=(Number(latest.inventoryRevision)||0)+(changed?1:0);
+        state.shipSettings={...latest.shipSettings};state.shipHealth=clone(latest.shipHealth);state.scoreStats=clone(latest.scoreStats);
       }
+      const result=publicSave(state);
+      saveSnapshots.set(state,{stores:{...(state.stores||{})},inventoryRevision:Number(state.inventoryRevision)||0});
+      return result;
     }
     return publicSave(state);
   };
