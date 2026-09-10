@@ -41,6 +41,13 @@
     return null;
   }
 
+  function combatSelectionRef(){
+    const utilityId=window.combatUtility?.selected;
+    if(utilityId)return {side:'player',id:utilityId,kind:'room'};
+    if(state?.selectedWeaponId)return {side:'player',id:state.selectedWeaponId,kind:'room'};
+    return null;
+  }
+
   function entityFor(ref){
     if(!ref)return null;
     if(ref.kind==='mast')return ref.side==='player'?playerMast:enemyMast;
@@ -121,7 +128,7 @@
 
   function renderInspector(){
     document.querySelectorAll('.v31-inspected').forEach(el=>el.classList.remove('v31-inspected'));
-    const ref=hovered||locked;
+    const ref=hovered||combatSelectionRef()||locked;
     const entity=entityFor(ref);
     if(!ref||!entity){
       titleEl.textContent='Select or hover a room';
