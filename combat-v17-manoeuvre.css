@@ -25,6 +25,17 @@
   opacity:.38!important;filter:grayscale(.8);cursor:not-allowed!important
 }
 
+/* The left escape cell advertises the verb before the player reaches it. Flee still requires
+   a fresh Manoeuvre while already at this edge; arriving here consumes that turn's movement. */
+.track-cell.v30-flee-track{position:relative}
+.v30-flee-label{
+  position:absolute;left:50%;bottom:2px;transform:translateX(-50%);z-index:8;
+  color:rgba(142,86,78,.88);font:900 7px/1 Arial,sans-serif;letter-spacing:.12em;
+  pointer-events:none
+}
+.track-cell.v30-flee-track.track-current .v30-flee-label{color:#9b4d45}
+.move-btn.v17-flee-edge{border-color:rgba(151,74,65,.78)!important;color:#8f433d!important;background:rgba(246,222,213,.94)!important}
+
 /* DODGED is deliberately short-lived, but reads as an important successful defence while present. */
 .v15-dodged-tip{
   padding:7px 11px!important;border:2px solid rgba(53,116,161,.82)!important;
