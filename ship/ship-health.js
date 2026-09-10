@@ -14,7 +14,7 @@
     const button=document.createElement('button');button.type='button';button.className='v32-repair-one';button.textContent='REPAIR +1 · 🪵 1';
     const carpenter=Voyage.carpenterFunctional(state),timber=Number(state.stores?.timber)||0;
     button.disabled=!carpenter||timber<1;
-    button.title=!carpenter?"Requires a working Carpenter's Workshop":timber<1?'Requires 1 Timber':'Repair one damage blip at sea for 1 Timber';
+    button.title=!carpenter?"Requires a working Carpenter's Workshop":timber<1?'Requires 1 Timber':'Repair 1 ship damage at sea for 1 Timber';
     button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();const result=Voyage.repairOne(id);if(!result?.ok&&result?.reason)button.title=result.reason;decorate();});
     return button;
   }
@@ -40,9 +40,9 @@
 
   function renderControls(state){
     const missing=Voyage.missingBlips(state),timber=Number(state.stores?.timber)||0,carpenter=Voyage.carpenterFunctional(state);
-    repairCard.innerHTML=`<span class="side-kicker">AT-SEA REPAIRS</span><strong>Carpenter quick repair</strong><p>${missing?`${missing} damage blip${missing===1?'':'s'} remain. Each costs 1 Timber.`:'The Wayward is fully repaired.'}</p><button type="button" class="v32-repair-all">REPAIR ALL${missing?` · 🪵 ${missing}`:''}</button>`;
+    repairCard.innerHTML=`<span class="side-kicker">AT-SEA REPAIRS</span><strong>Carpenter quick repair</strong><p>${missing?`${missing} ship damage remain${missing===1?'s':''}. Each costs 1 Timber.`:'The Wayward is fully repaired.'}</p><button type="button" class="v32-repair-all">REPAIR ALL${missing?` · 🪵 ${missing}`:''}</button>`;
     const all=repairCard.querySelector('button');all.disabled=!carpenter||missing===0||timber<missing;
-    all.title=!carpenter?"Carpenter's Workshop must be functional":missing===0?'No damage to repair':timber<missing?`Need ${missing} Timber; ${timber} aboard`:`Repair all ${missing} missing blips for ${missing} Timber`;
+    all.title=!carpenter?"Carpenter's Workshop must be functional":missing===0?'No damage to repair':timber<missing?`Need ${missing} Timber; ${timber} aboard`:`Repair all ${missing} remaining ship damage for ${missing} Timber`;
     all.addEventListener('click',()=>{Voyage.repairAll();decorate();});
 
     balanceCard.innerHTML=`<div><span class="side-kicker">STORAGE RISK</span><strong>Auto-balance between Holds</strong><p>When there is space, resources split between cargo Holds so one destroyed Hold does not wipe the whole stack. Shops still calculate capacity from total quantities and virtual compacting, so this balancing never creates a false “no space” result.</p></div><label class="toggle v32-balance-toggle" title="When there is space, resources split between cargo Holds. Shop and reward capacity checks look at total quantities and how tightly they could be compacted, not the current split."><input type="checkbox"><span></span></label><button type="button" class="v32-balance-now">BALANCE NOW</button>`;
