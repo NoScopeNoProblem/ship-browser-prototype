@@ -16,6 +16,7 @@
   function toast(text){
     const old=document.querySelector('.v34-wait-toast');old?.remove();
     const el=document.createElement('div');el.className='v34-wait-toast';el.textContent=text;
+    Object.assign(el.style,{marginTop:'10px',padding:'9px 11px',border:'1px solid #647986',background:'#10242e',color:'#edf2f4',fontSize:'11px',fontWeight:'900',letterSpacing:'.06em',textAlign:'center'});
     const panel=document.querySelector('.route-panel');(panel||document.body).appendChild(el);
     setTimeout(()=>el.remove(),3200);
   }
@@ -26,16 +27,17 @@
   wait.addEventListener('click',()=>{
     const before=Adventure.load();if(before.status!=='active'||before.midPassage)return;
     const cost=foodRate(before),nodeId=before.currentNodeId;
+    wait.disabled=true;wait.textContent='WAITING…';
     Voyage.advanceDay(1);window.HighSeasWorldStateSync?.sync?.();
     try{sessionStorage.setItem('highSeasWaitResult',JSON.stringify({nodeId,cost}));}catch{}
-    // Reload the map after the deliberate day transition so route forecasts, moving threats and
-    // every closure-owned world view are rebuilt from the newly advanced canonical state.
-    window.location.replace(window.location.pathname+window.location.search);
+    // Rebuild the map from canonical state after the deliberate day transition so route forecasts,
+    // moving threats and every closure-owned world view advance together.
+    setTimeout(()=>window.location.replace(window.location.pathname+window.location.search),90);
   });
 
   let waited=null;try{waited=JSON.parse(sessionStorage.getItem('highSeasWaitResult')||'null');if(waited)sessionStorage.removeItem('highSeasWaitResult');}catch{}
   if(waited)setTimeout(()=>{
-    const state=Adventure.load();toast(`Waited 1 day · −${waited.cost} Food`);
+    const state=Adventure.load();toast(`WAITED 1 DAY · −${waited.cost} FOOD`);
     const threat=currentThreat(state);if(!threat)return;
     const marker=[...document.querySelectorAll('.enemy-marker')].find(el=>el.title?.startsWith(threat.name));
     marker?.click();
