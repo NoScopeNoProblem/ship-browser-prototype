@@ -1,0 +1,5 @@
+.medicine-market-row{border-top:1px solid rgba(120,151,164,.28);margin-top:6px;padding-top:12px}
+.medicine-market-row>div:first-child{display:flex;flex-direction:column;gap:3px}
+.medicine-market-row strong{display:flex;align-items:center;gap:7px}.medicine-herb{font-size:18px}
+.medicine-market-row small{display:block;max-width:310px;color:#91a6b2;font-size:11px;line-height:1.35}
+.medicine-trade-button{min-width:145px}
