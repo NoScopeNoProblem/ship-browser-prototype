@@ -57,6 +57,14 @@
     decorateMast(state);renderControls(state);
   }
 
+  function blockDestroyedStorage(event){
+    const room=event.target.closest?.('.room-card[data-room-id]');if(!room)return;
+    const health=Voyage.roomHealth(room.dataset.roomId);if(!health||health.hp>0)return;
+    if(!event.target.closest?.('.slot'))return;
+    event.preventDefault();event.stopImmediatePropagation();room.title='Destroyed rooms cannot accept cargo until repaired.';
+  }
+  for(const type of ['click','drop','dragover','dragenter'])grid.addEventListener(type,blockDestroyedStorage,true);
+
   document.getElementById('sortNow')?.addEventListener('click',event=>{
     const state=Voyage.load();if(!state.shipSettings?.autoBalanceCargo)return;
     event.preventDefault();event.stopImmediatePropagation();Voyage.rebalance();decorate();
