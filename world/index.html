@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="world.css?v=20260910bb" />
   <link rel="stylesheet" href="world-trade.css?v=20260910c" />
   <link rel="stylesheet" href="world-v2-voyage.css?v=20260910c" />
+  <link rel="stylesheet" href="world-v3-travel.css?v=20260910d" />
 </head>
 <body>
   <main class="world-shell">
@@ -30,7 +31,7 @@
           <div class="node-layer" id="nodeLayer"></div>
           <div class="entity-layer" id="entityLayer"></div>
         </div>
-        <div class="legend"><span><i class="lg major">⚓</i> Major Port</span><span><i class="lg minor">●</i> Minor Port</span><span><i class="lg poi">◇</i> POI</span><span><i class="lg ship">⛵</i> Moving Threat</span><span><i class="lg current">⛵</i> You</span><span><i class="lg" style="color:#74c991">→</i> Favourable · 1d</span><span><i class="lg" style="color:#de7772">←</i> Adverse · 3d</span></div>
+        <div class="legend"><span><i class="lg major">⚓</i> Major Port</span><span><i class="lg minor">●</i> Minor Port</span><span><i class="lg poi">◇</i> POI</span><span><i class="lg ship">⛵</i> Moving Threat</span><span><i class="lg current">⛵</i> You</span><span><i class="lg" style="color:#74c991">→</i> With wind · 1d</span><span><i class="lg" style="color:#de7772">←</i> Against wind · 3d</span></div>
       </div>
 
       <aside class="route-panel">
@@ -42,7 +43,7 @@
         <button class="sail-button" id="sailNext" type="button" disabled>SAIL NEXT LEG</button>
         <button class="small-action" id="clearRoute" type="button" disabled>CLEAR ROUTE</button>
         <div class="rule"></div>
-        <div class="future-note"><b>VOYAGE MODEL</b><p>Normal passages are 2 days. Favourable passages are 1 day; adverse passages are 3. The Wayward currently consumes 4 Food per sailing day. Ship damage now persists, and a destroyed Mast must be repaired before sailing.</p></div>
+        <div class="future-note"><b>VOYAGE MODEL</b><p>Normal passages are 2 days. Wind passages are directional: with the wind is 1 day, sailing back against that same wind is 3. The Wayward consumes 4 Food per adventure day. Ship damage persists, and a destroyed Mast must be repaired before sailing.</p></div>
       </aside>
     </section>
   </main>
@@ -53,7 +54,7 @@
   <script src="../shared/adventure-state.js?v=20260910c"></script>
   <script src="../shared/ship-voyage.js?v=20260910c"></script>
   <script src="world-data.js?v=20260910bb"></script>
-  <script src="world.js?v=20260910bb"></script>
+  <script src="world.js?v=20260910d"></script>
   <script src="world-trade.js?v=20260910c"></script>
   <script src="world-v2-voyage.js?v=20260910c"></script>
 </body>
