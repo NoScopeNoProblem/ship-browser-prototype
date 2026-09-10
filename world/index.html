@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>High Seas — The First Sea</title>
   <link rel="stylesheet" href="world.css?v=20260910bb" />
-  <link rel="stylesheet" href="world-trade.css?v=20260910a" />
+  <link rel="stylesheet" href="world-trade.css?v=20260910c" />
+  <link rel="stylesheet" href="world-v2-voyage.css?v=20260910c" />
 </head>
 <body>
   <main class="world-shell">
@@ -41,17 +42,19 @@
         <button class="sail-button" id="sailNext" type="button" disabled>SAIL NEXT LEG</button>
         <button class="small-action" id="clearRoute" type="button" disabled>CLEAR ROUTE</button>
         <div class="rule"></div>
-        <div class="future-note"><b>VOYAGE MODEL</b><p>Normal passages are 2 days. Favourable passages are 1 day; adverse passages are 3. The Wayward currently consumes 4 Food per sailing day. Capacity and shortage hard-stops remain disabled while the cargo economy is being calibrated.</p></div>
+        <div class="future-note"><b>VOYAGE MODEL</b><p>Normal passages are 2 days. Favourable passages are 1 day; adverse passages are 3. The Wayward currently consumes 4 Food per sailing day. Ship damage now persists, and a destroyed Mast must be repaired before sailing.</p></div>
       </aside>
     </section>
   </main>
 
   <div class="modal-layer" id="modalLayer" hidden><section class="modal-card" id="modalCard" role="dialog" aria-modal="true"></section></div>
 
-  <script src="../shared/ship-storage.js?v=20260910a"></script>
-  <script src="../shared/adventure-state.js?v=20260910a"></script>
+  <script src="../shared/ship-storage.js?v=20260910c"></script>
+  <script src="../shared/adventure-state.js?v=20260910c"></script>
+  <script src="../shared/ship-voyage.js?v=20260910c"></script>
   <script src="world-data.js?v=20260910bb"></script>
   <script src="world.js?v=20260910bb"></script>
-  <script src="world-trade.js?v=20260910a"></script>
+  <script src="world-trade.js?v=20260910c"></script>
+  <script src="world-v2-voyage.js?v=20260910c"></script>
 </body>
 </html>
