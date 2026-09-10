@@ -64,7 +64,7 @@
     if(last.kind==='sunk'){
       const reward=World.combatRewards?.sunk||{};
       const card=document.createElement('button');card.type='button';card.className='v32-reward-choice';card.innerHTML=`<span>WRECKAGE</span><strong>${rewardText(reward)}</strong><small>Take what physically fits; anything else is left behind.${fitText(reward)}</small>`;
-      card.addEventListener('click',()=>{take(reward);saveProgress('initialTaken');showExtra('victory');});rewards.appendChild(card);return;
+      card.addEventListener('click',()=>{take(reward);saveProgress('initialTaken');rewards.innerHTML='';actions.appendChild(button('RETURN TO CHART','primary',finish));});rewards.appendChild(card);return;
     }
     const kind=last.kind==='surrender'?'surrender':'victory',table=World.combatRewards?.[kind]||{};
     const options=[['TAKE COIN',table.coin],['TAKE STORES',table.stores]];
@@ -73,7 +73,7 @@
 
   resultHeading();renderLedger();renderGains();
   const stage=last.postCombat?.stage;
-  if(stage==='initialTaken')showExtra(last.kind==='surrender'?'surrender':'victory');
+  if(stage==='initialTaken'){if(last.kind==='sunk')actions.appendChild(button('RETURN TO CHART','primary',finish));else showExtra(last.kind==='surrender'?'surrender':'victory');}
   else if(stage==='extraTaken'||stage==='extraSkipped')actions.appendChild(button('RETURN TO CHART','primary',finish));
   else showInitialRewards();
 })();
