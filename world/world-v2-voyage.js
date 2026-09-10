@@ -10,7 +10,7 @@
     const state=Voyage.load(),missing=Voyage.missingBlips(state),timber=Number(state.stores?.timber)||0,carp=Voyage.carpenterFunctional(state);
     quick.textContent=missing?`CARPENTER · REPAIR ALL · 🪵 ${missing}`:'CARPENTER · SHIP FULLY REPAIRED';
     quick.disabled=!carp||missing===0||timber<missing;
-    quick.title=!carp?"Carpenter's Workshop is destroyed":missing===0?'No damage to repair':timber<missing?`Need ${missing} Timber; ${timber} aboard`:`At-sea quick repair: restore all ${missing} missing blips for ${missing} Timber`;
+    quick.title=!carp?"Carpenter's Workshop is destroyed":missing===0?'No damage to repair':timber<missing?`Need ${missing} Timber; ${timber} aboard`:`At-sea quick repair: repair all ${missing} remaining ship damage for ${missing} Timber`;
     const mast=Voyage.roomHealth('p_mast',state);
     if(sail&&mast?.hp<=0){sail.disabled=true;sail.title='Main Mast destroyed — repair it in Ship Management before sailing.';}
     else if(sail){sail.title='';const next=document.getElementById('nextLeg');if(next&&next.textContent.trim()!=='—'&&state.status==='active')sail.disabled=false;}
@@ -40,6 +40,31 @@
     const button=event.target.closest('button.buy,.medicine-trade-button');if(!button||button.disabled)return;
     setTimeout(()=>{const state=Voyage.load();if(state.shipSettings?.autoBalanceCargo)Voyage.rebalance();decorateMarket();updateQuickRepair();},0);
   });
+
+  function rewardParts(summary={}){
+    const names={food:'Food',cannonballs:'Cannonballs',timber:'Timber',medicine:'Medicine'},icons=window.HighSeasShipStorage?.ITEMS||{},parts=[];
+    if(summary.coins)parts.push(`🪙 +${summary.coins} Coin`);
+    for(const [id,q] of Object.entries(summary.accepted||{}))if(Number(q)>0)parts.push(`${icons[id]?.icon||'•'} +${q} ${names[id]||id}`);
+    return parts;
+  }
+  function updateWorldHud(){
+    const state=Voyage.load(),pairs={dayValue:state.day,coinValue:state.coins,foodValue:state.stores?.food,ballValue:state.stores?.cannonballs,timberValue:state.stores?.timber};
+    for(const [id,value] of Object.entries(pairs)){const el=document.getElementById(id);if(el&&value!==undefined)el.textContent=value;}
+  }
+  function applyExplorationReward(button){
+    if(!button||button.textContent.trim()!=='EXPLORE')return;
+    const before=Voyage.load(),nodeId=before.currentNodeId,reward=World.explorationRewards?.[nodeId];if(!reward)return;
+    // world.js resolves the POI first on the target click. Apply its physical reward afterwards so
+    // the existing world closure keeps its resolved-node state while Adventure.save's revision
+    // merge protects this newer cargo state on the next world save.
+    setTimeout(()=>{
+      const summary=Voyage.acceptReward(reward),accepted=rewardParts(summary),left=Object.entries(summary.leftBehind||{}).filter(([,q])=>Number(q)>0).map(([id,q])=>`${q} ${id}`);
+      updateWorldHud();
+      const copy=modal?.querySelector('.modal-head p');
+      if(copy){const flavour=reward.copy?`${reward.copy} `:'';copy.textContent=`${flavour}${accepted.length?`Recovered: ${accepted.join(' · ')}.`:'Nothing could be loaded.'}${left.length?` Left behind for lack of space: ${left.join(', ')}.`:''}`;}
+    },0);
+  }
+  document.addEventListener('click',event=>{const b=event.target.closest?.('.modal-button');if(b)applyExplorationReward(b);});
 
   function injectScore(){
     if(!modal||modal.dataset.v32Score==='1')return;
