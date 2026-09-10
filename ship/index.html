@@ -4,8 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>High Seas — Ship Management</title>
-  <link rel="stylesheet" href="../shared/room-art.css?v=20260910a" />
-  <link rel="stylesheet" href="ship.css?v=20260910a" />
+  <link rel="stylesheet" href="../shared/room-art.css?v=20260910c" />
+  <link rel="stylesheet" href="ship.css?v=20260910c" />
+  <link rel="stylesheet" href="ship-health.css?v=20260910c" />
+  <link rel="stylesheet" href="post-combat.css?v=20260910c" />
 </head>
 <body>
   <main class="ship-shell">
@@ -23,7 +25,7 @@
 
     <section class="management-layout">
       <div class="ship-board">
-        <div class="board-copy"><div><span>SHIP INTERIOR</span><strong>Move whole stacks by drag-and-drop, or click a stack then click a destination slot.</strong></div><div class="range-hint">Hold <kbd>X</kbd> · firing arcs</div></div>
+        <div class="board-copy"><div><span>SHIP INTERIOR</span><strong>Damage and cargo persist between battles. Move whole stacks by drag-and-drop, or click a stack then click a destination slot.</strong></div><div class="range-hint">Hold <kbd>X</kbd> · firing arcs</div></div>
         <div class="faint-track" id="faintTrack" aria-label="Seven-cell combat alignment reference"></div>
         <div class="ship-canvas" id="shipCanvas">
           <div class="mast-card" id="mastCard"><span>MAIN MAST</span><b>3</b></div>
@@ -35,9 +37,9 @@
 
       <aside class="management-side">
         <section class="auto-sort-card">
-          <div><span class="side-kicker">AFTER COMBAT</span><strong>Automatic stores sorting</strong><p>When enabled, returning from combat refills Cannonballs into the Magazine and Timber into the Carpenter first, then packs remaining cargo into Holds.</p></div>
-          <label class="toggle" title="Enabled by default. This only automatically sorts when combat ends; you can still arrange cargo manually here."><input id="autoSortToggle" type="checkbox" checked><span></span></label>
-          <button id="sortNow" type="button">SORT NOW</button>
+          <div><span class="side-kicker">SPECIALIST STORES</span><strong>Automatic specialist sorting</strong><p>When enabled, combat exit refills Cannonballs into the Magazine and Timber into the Carpenter first. The separate Hold-balancing option controls how general cargo risk is spread.</p></div>
+          <label class="toggle" title="Refill specialist rooms automatically after combat. General Hold balancing is controlled separately."><input id="autoSortToggle" type="checkbox" checked><span></span></label>
+          <button id="sortNow" type="button">SORT / BALANCE NOW</button>
         </section>
 
         <section class="room-inspector" id="roomInspector">
@@ -45,7 +47,7 @@
           <div class="inspector-copy">
             <span class="side-kicker">ROOM / SYSTEM</span>
             <h2 id="inspectorTitle">GENERAL STORAGE</h2>
-            <p id="inspectorText">Three flexible cargo slots. Food, Cannonballs, Timber and Medicine can be stored here.</p>
+            <p id="inspectorText">Three flexible cargo slots. Food, Cannonballs, Timber and Medicine can be stored here. If the Hold is destroyed in combat, everything inside it is lost.</p>
             <div class="special-cargo" id="specialCargo"></div>
           </div>
           <div class="inspector-slots">
@@ -57,8 +59,12 @@
     </section>
   </main>
 
-  <script src="../shared/ship-storage.js?v=20260910a"></script>
-  <script src="../shared/adventure-state.js?v=20260910a"></script>
-  <script src="ship.js?v=20260910a"></script>
+  <script src="../shared/ship-storage.js?v=20260910c"></script>
+  <script src="../shared/adventure-state.js?v=20260910c"></script>
+  <script src="../shared/ship-voyage.js?v=20260910c"></script>
+  <script src="../world/world-data.js?v=20260910bb"></script>
+  <script src="ship.js?v=20260910c"></script>
+  <script src="ship-health.js?v=20260910c"></script>
+  <script src="post-combat.js?v=20260910c"></script>
 </body>
 </html>
