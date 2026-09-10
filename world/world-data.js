@@ -64,9 +64,13 @@
       cannonballs:{label:'Cannonballs',amount:3,cost:1},
       timber:{label:'Timber',amount:4,cost:1}
     },
+    explorationRewards:{
+      whisperingReef:{stores:{food:8,timber:1},copy:'Sheltered pools hide edible shellfish and useful driftwood.'},
+      lanternAtoll:{stores:{food:12,cannonballs:3},copy:'An abandoned watch camp still holds sealed provisions and a dry powder chest.'}
+    },
     wreckRewards:{
-      quick:{days:1,stores:{timber:1}},
-      thorough:{days:2,stores:{timber:2,cannonballs:3,food:4}}
+      quick:{days:1,stores:{food:4,timber:1}},
+      thorough:{days:2,stores:{food:8,timber:2,cannonballs:3}}
     },
     combatRewards:{
       sunk:{stores:{timber:1}},
