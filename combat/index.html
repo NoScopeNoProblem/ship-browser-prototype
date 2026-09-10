@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>High Seas — Ship Battler</title>
+  <link rel="stylesheet" href="../ship-select.css?v=20260910ba" />
+  <style>.back-menu{position:fixed;left:18px;bottom:16px;z-index:50;color:#b8c5ce;text-decoration:none;font:800 10px/1 system-ui;letter-spacing:.1em;border:1px solid #40515d;background:#101922;padding:10px 12px;border-radius:6px}.back-menu:hover{color:white;border-color:#788b98}</style>
+</head>
+<body>
+  <main class="dev-shell">
+    <header class="dev-topbar">
+      <div><div class="eyebrow">Combat Sandbox · Dev Setup</div><h1>Select & Build Ships</h1></div>
+      <div class="dev-note">Full information is shown here for testing. Enemy support/storage rooms return to normal hidden-information rules when combat begins.</div>
+    </header>
+
+    <div class="builder-grid">
+      <section class="match-panel">
+        <div class="match-row">
+          <aside class="ship-list-panel">
+            <div class="list-title"><strong>PLAYER SHIPS</strong><span class="list-columns"><span>SHIP</span><span>SIZE</span><span>RANK</span></span></div>
+            <div class="ship-list" id="playerShipList"></div>
+          </aside>
+          <div class="preview-panel" id="playerShipPreview"></div>
+          <button class="customise" id="playerCustomise" type="button">CUSTOMISE PLAYER</button>
+        </div>
+
+        <div class="match-row">
+          <aside class="ship-list-panel">
+            <div class="list-title"><strong>ENEMY SHIPS</strong><span class="list-columns"><span>SHIP</span><span>SIZE</span><span>RANK</span></span></div>
+            <div class="ship-list" id="enemyShipList"></div>
+          </aside>
+          <div class="preview-panel" id="enemyShipPreview"></div>
+          <button class="customise" id="enemyCustomise" type="button">CUSTOMISE ENEMY</button>
+        </div>
+
+        <div class="start-wrap"><button class="start-combat" id="startCombat" type="button">START COMBAT</button></div>
+      </section>
+
+      <aside class="editor-panel" id="shipEditor">
+        <div class="editor-head"><h2>SHIP EDITOR</h2><button class="close-edit" id="stopEditing" type="button">CLOSE</button></div>
+        <div class="editor-empty" id="editorEmpty">Choose <b>CUSTOMISE</b> on either ship. Hover rooms to inspect them, click a room to lock selection, then choose a replacement from the room library.</div>
+        <div class="editor-body" id="editorBody" hidden>
+          <div class="edit-kicker" id="editorSide"></div>
+          <div class="field"><label>SHIP NAME</label><input id="shipName" maxlength="32" /></div>
+          <div class="field"><label>HULL SIZE</label><div class="size-toggle"><button id="size3" type="button">3×2</button><button id="size4" type="button">4×2</button></div></div>
+          <div class="field"><label>MAST HP</label><div class="stepper"><button id="mastHpDown" type="button">−</button><span id="mastHp">3</span><button id="mastHpUp" type="button">+</button></div></div>
+          <div class="field"><label>MAST COLUMN</label><select id="mastColumn"></select></div>
+          <div class="field"><label>SELECTED ROOM</label><div class="selected-room-label" id="selectedRoomLabel"></div></div>
+          <div class="field"><label>ROOM HP</label><div class="stepper"><button id="roomHpDown" type="button">−</button><span id="roomHp">—</span><button id="roomHpUp" type="button">+</button></div></div>
+          <div class="library-title">ROOM LIBRARY</div>
+          <div class="room-library" id="roomLibrary"></div>
+          <div class="editor-actions"><button id="saveShip" type="button">SAVE</button><button id="saveAsShip" type="button">SAVE AS NEW</button><button id="deleteShip" class="wide delete-ship" type="button" hidden>DELETE SAVED SHIP</button></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <a class="back-menu" href="../">MAIN MENU</a>
+  <script src="../combat-v11-data.js?v=20260910ba"></script>
+  <script src="../ship-select.js?v=20260910ba"></script>
+</body>
+</html>
