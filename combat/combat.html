@@ -54,6 +54,12 @@
   </main>
   <script src="../shared/adventure-state.js?v=20260910ba"></script>
   <script src="../combat-v11-data.js?v=20260910ba"></script>
+  <script>
+    if(new URLSearchParams(window.location.search).get('mode')==='adventure'){
+      const pending=window.HighSeasAdventure?.load?.().pendingCombat;
+      if(pending?.name)ENEMY_SHIP_SETUP.name=pending.name;
+    }
+  </script>
   <script src="../combat-v2-core.js?v=20260910ba"></script>
   <script src="../combat-v2-ui.js?v=20260910ba"></script>
   <script src="../combat-v2-controls.js?v=20260910ba"></script>
