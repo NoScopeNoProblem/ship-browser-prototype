@@ -55,7 +55,7 @@
 
   function withDamageTypes(dist){
     const damageTypes=new Map();
-    dist.hits.forEach((total,id)=>{const ex=Math.max(0,Math.min(total,Number(dist.explosions?.get(id)||0));damageTypes.set(id,[...Array(total-ex).fill('cannon'),...Array(ex).fill('explosive')]);});
+    dist.hits.forEach((total,id)=>{const ex=Math.max(0,Math.min(total,Number(dist.explosions?.get(id)||0)));damageTypes.set(id,[...Array(total-ex).fill('cannon'),...Array(ex).fill('explosive')]);});
     return {...dist,damageTypes,projectionAuthority:'v27-current-alignment'};
   }
 
@@ -104,10 +104,7 @@
     return {turn:currentTurn(),mastStart,mastNow:state.playerMastTrack,moved:state.playerMastTrack!==mastStart,player,enemy};
   }
   function snapshot(){return baseSnapshot();}
-  function previewSnapshot(){
-    const visible=new Set(window.enemyAI?.revealedSourceIds?.()||[]);
-    return baseSnapshot(intent=>visible.has(intent.sourceId));
-  }
+  function previewSnapshot(){const visible=new Set(window.enemyAI?.revealedSourceIds?.()||[]);return baseSnapshot(intent=>visible.has(intent.sourceId));}
 
   // ---- Canonical movement-sensitive UI ----------------------------------
   function clearPlanningDecorations(){
@@ -127,9 +124,7 @@
   }
 
   function arrow(a,b){if(b.kind==='mast')return a.actionType==='resetSails'?'⛵':'⛨';if(a.id===b.id)return a.actionType==='brace'?'⛨':'♥';return {'-1,-1':'↖','0,-1':'↑','1,-1':'↗','-1,0':'←','1,0':'→','-1,1':'↙','0,1':'↓','1,1':'↘'}[`${Math.sign(b.col-a.col)},${Math.sign(b.row-a.row)}`]||'•';}
-  function renderWeapons(){
-    playerRooms.filter(r=>r.weapon).forEach(room=>{const el=getEntityElement('player',room.id);if(!el)return;const ready=room.hp>0&&combatTurn.isReady(room.id);const dot=document.createElement('div');dot.className=`v12-ammo-status ${ready?'loaded':'empty'}${room.hp<=0?' disabled':''}`;dot.innerHTML=`<span>${ready?'●':'○'}</span>`;dot.title=room.hp<=0?'Disabled':ready?'Cannonball loaded':'Cannonball empty — loading';el.appendChild(dot);if(room.hp>0&&!ready){const b=document.createElement('div');b.className='loading-v4';b.innerHTML='<span class="wheel">↻</span><span>LOAD</span>';el.appendChild(b);}if(ready&&!Object.prototype.hasOwnProperty.call(state.playerIntents||{},room.id))el.classList.add('action-ready');});
-  }
+  function renderWeapons(){playerRooms.filter(r=>r.weapon).forEach(room=>{const el=getEntityElement('player',room.id);if(!el)return;const ready=room.hp>0&&combatTurn.isReady(room.id);const dot=document.createElement('div');dot.className=`v12-ammo-status ${ready?'loaded':'empty'}${room.hp<=0?' disabled':''}`;dot.innerHTML=`<span>${ready?'●':'○'}</span>`;dot.title=room.hp<=0?'Disabled':ready?'Cannonball loaded':'Cannonball empty — loading';el.appendChild(dot);if(room.hp>0&&!ready){const b=document.createElement('div');b.className='loading-v4';b.innerHTML='<span class="wheel">↻</span><span>LOAD</span>';el.appendChild(b);}if(ready&&!Object.prototype.hasOwnProperty.call(state.playerIntents||{},room.id))el.classList.add('action-ready');});}
   function utilityPresentation(room,used,available){
     if(room.actionType==='repair')return {icon:'♥+',title:used?'Repair used this turn':available?'Repair available':'No repair target'};
     if(room.actionType==='quickLoad')return {icon:'↻+',title:used?'Quick Load used this turn':available?'Quick Load available':'No loading adjacent gun'};
@@ -234,8 +229,8 @@
   function renderCanonicalPlanning(){
     if(!planning())return;
     if(previewing()){
-      // These are canonical intent-owned visuals, revealed from the same locked actions/source set.
-      // No temporary duplicate pips or early full-turn prediction is created for the preview.
+      // Canonical intent-owned visuals are revealed from the same locked actions/source set.
+      // No temporary duplicate repair/Brace pips or full-turn explosion preview is created.
       renderRepairPips();renderBracePips();renderExplosionTransitions(previewSnapshot());return;
     }
     const s=snapshot();clearPlanningDecorations();renderThreats(s);renderWeapons();renderUtilities();renderMastStatus(s);renderRepairPips();renderBracePips();renderExplosionTransitions(s);renderDodges(s);renderRepairCancellation(s);normalizeGridAndName();syncTimber();renderStats();replayState();window.__combatPlanningSnapshot=s;
@@ -248,7 +243,7 @@
   window.addEventListener('combat-ended',()=>{if(!ledger.ended){syncTimber();ledger.timber+=ledger.pending;ledger.pending=0;ledger.ended=true;renderStats();}clearLines();if(replayTimer)clearInterval(replayTimer);repairCancelOverlay.innerHTML='';explosionOverlay.innerHTML='';replayState();});
 
   window.combatMatchup={enemyId:ENEMY_SHIP_SETUP.id,playerId:PLAYER_SHIP_SETUP.id,threatStars:Number(ENEMY_SHIP_SETUP.threatStars)||0,expectation:ENEMY_SHIP_SETUP.testExpectation||'',availableShips:()=>Object.keys(SHIP_SETUPS),urlFor({enemy=ENEMY_SHIP_SETUP.id,player=PLAYER_SHIP_SETUP.id}={}){const u=new URL(window.location.href);u.searchParams.set('enemy',enemy);u.searchParams.set('player',player);return u.toString();}};
-  window.combatPlanningRuntime={snapshot,get diagnostics(){const s=snapshot();return{turn:s.turn,mastStart:s.mastStart,mastNow:s.mastNow,moved:s.moved,magazineUsed:combatUtility?.isUsed?.('p_mag')??null,magazineAvailable:playerRoom('p_mag')?combatUtility?.isAvailable?.(playerRoom('p_mag'))??null:null,weaponStates:Object.fromEntries(playerRooms.filter(r=>r.weapon).map(r=>[r.id,combatTurn.getWeaponState(r.id)])),enemyHits:Object.fromEntries(s.enemy.hits),enemyExplosions:Object.fromEntries(s.enemy.explosions),playerBraces:Object.fromEntries(s.enemy.braced||[]),enemyBraces:Object.fromEntries(s.player.braced||[]) };},restoreLog,render:renderCanonicalPlanning};
+  window.combatPlanningRuntime={snapshot,get diagnostics(){const s=snapshot();return{turn:s.turn,mastStart:s.mastStart,mastNow:s.mastNow,moved:s.moved,magazineUsed:combatUtility?.isUsed?.('p_mag')??null,magazineAvailable:playerRoom('p_mag')?combatUtility?.isAvailable?.(playerRoom('p_mag'))??null:null,weaponStates:Object.fromEntries(playerRooms.filter(r=>r.weapon).map(r=>[r.id,combatTurn.getWeaponState(r.id)])),enemyHits:Object.fromEntries(s.enemy.hits),enemyExplosions:Object.fromEntries(s.enemy.explosions),playerBraces:Object.fromEntries(s.enemy.braced||[]),enemyBraces:Object.fromEntries(s.player.braced||[])};},restoreLog,render:renderCanonicalPlanning};
 
   placeReplay();refresh();
 })();
