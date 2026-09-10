@@ -33,10 +33,13 @@
   const edgeBetween=(a,b)=>World.edges.find(e=>(e.a===a&&e.b===b)||(e.a===b&&e.b===a))||null;
   const neighbours=id=>World.edges.flatMap(edge=>edge.a===id?[[edge.b,edge]]:edge.b===id?[[edge.a,edge]]:[]);
   const iconFor=node=>node.type==='majorPort'?'⚓':node.type==='minorPort'?'●':node.type==='poi'?(node.poiKind==='wreck'?'⚑':'◇'):node.type==='paradise'?'★':'·';
+  const foodRate=()=>Math.max(0,Number(World.ships?.[state.shipId]?.foodPerDay)||4);
 
   function ensureState(){
     if(!nodeById(state.currentNodeId))state.currentNodeId=World.startNodeId;
     state.routeConditions=state.routeConditions||{};
+    state.plannedRoute=Array.isArray(state.plannedRoute)?state.plannedRoute.filter(id=>nodeById(id)):[];
+    if(state.plannedRoute.length&&state.plannedRoute[0]!==state.currentNodeId)state.plannedRoute=[];
     state.visitedNodeIds=Array.isArray(state.visitedNodeIds)?state.visitedNodeIds:[World.startNodeId];
     state.resolvedPoiIds=Array.isArray(state.resolvedPoiIds)?state.resolvedPoiIds:[];
     state.enemies=state.enemies||{};
@@ -54,12 +57,12 @@
   }
 
   function edgeDays(edge){
-    const travel=edge.travel||{};
-    const runtime=state.routeConditions?.[edge.id]||{};
+    const travel=edge?.travel||{};
+    const runtime=state.routeConditions?.[edge?.id]||{};
     const base=Number(travel.baseDays)||2;
     const staticMod=Number(travel.modifierDays)||0;
     const runtimeMod=Number(runtime.modifierDays)||0;
-    return Math.max(1,base+staticMod+runtimeMod);
+    return Math.max(1,Math.round(base+staticMod+runtimeMod));
   }
 
   function shortestPath(start,target){
@@ -86,75 +89,178 @@
     path.reverse();return {path,days:dist.get(target)};
   }
 
+  function normalPlan(){
+    const path=state.plannedRoute;
+    if(!Array.isArray(path)||path.length<2||path[0]!==state.currentNodeId)return null;
+    let days=0;
+    for(let i=0;i<path.length-1;i++){
+      const edge=edgeBetween(path[i],path[i+1]);if(!edge)return null;days+=edgeDays(edge);
+    }
+    return {path:[...path],days,midPassage:false};
+  }
+
   function currentPlan(){
-    if(!state.plannedDestinationId||state.plannedDestinationId===state.currentNodeId)return null;
-    return shortestPath(state.currentNodeId,state.plannedDestinationId);
+    if(state.midPassage){
+      const target=state.plannedRoute?.[0];
+      if(target!==state.midPassage.fromNodeId&&target!==state.midPassage.toNodeId)return null;
+      return {path:['__mid__',target],days:1,midPassage:true};
+    }
+    return normalPlan();
   }
 
   function edgeKey(a,b){return [a,b].sort().join('::');}
+  function windState(edge){return state.routeConditions?.[edge.id]?.weatherState||edge.travel?.weatherState||'normal';}
 
   function renderEdges(plan){
     els.edgeLayer.innerHTML='';
     const planned=new Set();
-    if(plan)for(let i=0;i<plan.path.length-1;i++)planned.add(edgeKey(plan.path[i],plan.path[i+1]));
+    if(plan&&!plan.midPassage)for(let i=0;i<plan.path.length-1;i++)planned.add(edgeKey(plan.path[i],plan.path[i+1]));
+    if(plan?.midPassage)planned.add(edgeKey(state.midPassage.fromNodeId,state.midPassage.toNodeId));
+
     for(const edge of World.edges){
       const a=nodeById(edge.a),b=nodeById(edge.b);if(!a||!b)continue;
+      const wind=windState(edge);
       const group=document.createElementNS('http://www.w3.org/2000/svg','g');
       const line=document.createElementNS('http://www.w3.org/2000/svg','line');
       line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);
-      line.setAttribute('class',`route-edge${planned.has(edgeKey(edge.a,edge.b))?' planned':''}`);group.appendChild(line);
+      line.setAttribute('class',`route-edge${planned.has(edgeKey(edge.a,edge.b))?' planned':''}${wind!=='normal'?` ${wind}`:''}`);group.appendChild(line);
+
+      if(wind!=='normal'){
+        const left=a.x<=b.x?a:b,right=a.x<=b.x?b:a;
+        const flow=document.createElementNS('http://www.w3.org/2000/svg','text');
+        const mx=(left.x+right.x)/2,my=(left.y+right.y)/2;
+        const angle=Math.atan2(right.y-left.y,right.x-left.x)*180/Math.PI;
+        flow.setAttribute('x',mx);flow.setAttribute('y',my+1.1);flow.setAttribute('transform',`rotate(${angle} ${mx} ${my})`);
+        flow.setAttribute('class',`wind-arrows ${wind}`);
+        flow.textContent=wind==='favourable'?'› › ›':'‹ ‹ ‹';
+        group.appendChild(flow);
+      }
+
       const label=document.createElementNS('http://www.w3.org/2000/svg','text');
-      label.setAttribute('x',(a.x+b.x)/2);label.setAttribute('y',(a.y+b.y)/2-1.1);label.setAttribute('class','route-time');label.textContent=`${edgeDays(edge)}d`;group.appendChild(label);
+      label.setAttribute('x',(a.x+b.x)/2);label.setAttribute('y',(a.y+b.y)/2-1.4);
+      label.setAttribute('class',`route-time${wind!=='normal'?` ${wind}`:''}`);label.textContent=`${edgeDays(edge)}d`;group.appendChild(label);
       els.edgeLayer.appendChild(group);
     }
   }
 
+  function plannedFoodByNode(plan){
+    const result=new Map();
+    if(!plan)return result;
+    let food=state.stores.food;
+    if(plan.midPassage){food-=foodRate();result.set(plan.path[1],food);return result;}
+    for(let i=1;i<plan.path.length;i++){
+      food-=edgeDays(edgeBetween(plan.path[i-1],plan.path[i]))*foodRate();
+      result.set(plan.path[i],food);
+    }
+    return result;
+  }
+
+  function handleNodeSelection(node){
+    if(state.status!=='active')return;
+    if(state.midPassage){
+      if(node.id!==state.midPassage.fromNodeId&&node.id!==state.midPassage.toNodeId)return;
+      state.plannedRoute=[node.id];state.plannedDestinationId=node.id;Adventure.save(state);render();return;
+    }
+    if(node.id===state.currentNodeId){openLocation(node);return;}
+
+    let route=Array.isArray(state.plannedRoute)&&state.plannedRoute[0]===state.currentNodeId?[...state.plannedRoute]:[state.currentNodeId];
+    const existing=route.indexOf(node.id);
+    if(existing>0){
+      route=route.slice(0,existing+1);
+    }else{
+      const endpoint=route[route.length-1];
+      if(edgeBetween(endpoint,node.id)){
+        route.push(node.id);
+      }else{
+        const auto=shortestPath(endpoint,node.id);if(!auto)return;
+        route.push(...auto.path.slice(1));
+      }
+    }
+    state.plannedRoute=route;
+    state.plannedDestinationId=route[route.length-1]||null;
+    Adventure.save(state);render();
+  }
+
   function renderNodes(plan){
     els.nodeLayer.innerHTML='';
-    const plannedNodes=new Set(plan?.path||[]),visited=new Set(state.visitedNodeIds),resolved=new Set(state.resolvedPoiIds);
+    const plannedNodes=new Set(plan?.path?.filter(id=>id!=='__mid__')||[]),visited=new Set(state.visitedNodeIds),resolved=new Set(state.resolvedPoiIds);
+    const foodForecast=plannedFoodByNode(plan);
+    const midpointEndpoints=state.midPassage?new Set([state.midPassage.fromNodeId,state.midPassage.toNodeId]):null;
+
     for(const node of World.nodes){
       const button=document.createElement('button');button.type='button';button.className=`map-node ${node.type}`;
       button.style.left=`${node.x}%`;button.style.top=`${node.y}%`;button.dataset.nodeId=node.id;
-      button.classList.toggle('current',node.id===state.currentNodeId);button.classList.toggle('planned',plannedNodes.has(node.id));button.classList.toggle('visited',visited.has(node.id));button.classList.toggle('resolved',resolved.has(node.id));
-      button.innerHTML=`<span class="node-icon">${iconFor(node)}</span><span class="node-name">${node.name}</span><span class="node-type">${node.summary}</span>`;
-      button.title=node.id===state.currentNodeId?'Current location — click to open':`Plan a route to ${node.name}`;
-      button.addEventListener('click',()=>{
-        if(node.id===state.currentNodeId){openLocation(node);return;}
-        if(state.status!=='active')return;
-        state.plannedDestinationId=node.id;Adventure.save(state);render();
-      });
+      const current=!state.midPassage&&node.id===state.currentNodeId;
+      button.classList.toggle('current',current);button.classList.toggle('planned',plannedNodes.has(node.id));button.classList.toggle('visited',visited.has(node.id));button.classList.toggle('resolved',resolved.has(node.id));
+      if(midpointEndpoints&&!midpointEndpoints.has(node.id))button.classList.add('mid-unavailable');
+      const forecast=foodForecast.has(node.id)?`<span class="food-forecast${foodForecast.get(node.id)<0?' negative':''}">FOOD ${foodForecast.get(node.id)}</span>`:'';
+      button.innerHTML=`<span class="node-icon">${iconFor(node)}</span><span class="node-name">${node.name}</span><span class="node-type">${node.summary}</span>${forecast}`;
+      button.title=current?'Current location — click to open':midpointEndpoints?(midpointEndpoints.has(node.id)?'1 day from your current mid-passage position':'Reach one end of the passage first'):'Click adjacent nodes to author a route; distant nodes auto-route';
+      button.addEventListener('click',()=>handleNodeSelection(node));
       els.nodeLayer.appendChild(button);
     }
   }
 
-  function renderEnemies(){
+  function playerPosition(){
+    if(state.midPassage){
+      const a=nodeById(state.midPassage.fromNodeId),b=nodeById(state.midPassage.toNodeId);
+      if(a&&b)return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,mid:true};
+    }
+    const current=nodeById(state.currentNodeId);return current?{x:current.x,y:current.y,mid:false}:null;
+  }
+
+  function renderEntities(){
     els.entityLayer.innerHTML='';
+    const pos=playerPosition();
+    if(pos){
+      const player=document.createElement('div');player.className=`player-marker${pos.mid?' mid-passage':''}`;
+      player.style.left=`${pos.x}%`;player.style.top=`${pos.y}%`;
+      player.innerHTML='<span class="player-ship-icon" aria-hidden="true">⛵</span><b>YOU</b>';
+      player.title=pos.mid?'The Wayward — between chart nodes after fleeing':'The Wayward — your current position';
+      els.entityLayer.appendChild(player);
+    }
+
     for(const def of World.enemies){
       const entity=state.enemies[def.id];if(!entity?.active)continue;
       const node=nodeById(entity.nodeId);if(!node)continue;
       const button=document.createElement('button');button.type='button';button.className='enemy-marker';
-      button.style.left=`calc(${node.x}% + 24px)`;button.style.top=`calc(${node.y}% - 31px)`;
+      button.style.left=`calc(${node.x}% + 28px)`;button.style.top=`calc(${node.y}% - 34px)`;
       button.innerHTML=`<span>⛵</span><b>${'★'.repeat(def.threat)}</b>`;button.title=`${def.name} — Threat ${'★'.repeat(def.threat)}`;
       button.addEventListener('click',()=>openEnemyInfo(def,entity));els.entityLayer.appendChild(button);
     }
   }
 
+  function routeFoodCost(plan){return plan?plan.days*foodRate():0;}
+
   function renderHud(plan){
     els.seaName.textContent=World.name;els.day.textContent=state.day;els.coins.textContent=state.coins;
     els.food.textContent=state.stores.food;els.balls.textContent=state.stores.cannonballs;els.timber.textContent=state.stores.timber;
-    const current=nodeById(state.currentNodeId);els.current.textContent=current?.name||'—';
-    if(!plan){
-      els.destination.textContent='No route plotted';els.routeSummary.textContent='Select any location on the chart.';els.nextLeg.textContent='—';els.sail.disabled=true;els.clearRoute.disabled=true;
+    if(state.midPassage){
+      const a=nodeById(state.midPassage.fromNodeId),b=nodeById(state.midPassage.toNodeId);
+      els.current.textContent=`BETWEEN ${a?.name||'—'} / ${b?.name||'—'}`;els.openLocation.disabled=true;
     }else{
-      const destination=nodeById(state.plannedDestinationId),next=nodeById(plan.path[1]),nextEdge=edgeBetween(plan.path[0],plan.path[1]);
-      els.destination.textContent=destination?.name||'—';els.routeSummary.textContent=`${plan.path.length-1} leg${plan.path.length===2?'':'s'} · ${plan.days} days total`;
-      els.nextLeg.textContent=next?`${next.name} · ${edgeDays(nextEdge)} days`:'—';els.sail.disabled=!next||state.status!=='active';els.clearRoute.disabled=false;
+      els.current.textContent=nodeById(state.currentNodeId)?.name||'—';els.openLocation.disabled=!nodeById(state.currentNodeId);
     }
-    els.openLocation.disabled=!current;els.sail.textContent=plan?.path?.[1]?`SAIL NEXT LEG · ${edgeDays(edgeBetween(plan.path[0],plan.path[1]))}d`:'SAIL NEXT LEG';
+
+    if(!plan){
+      els.destination.textContent='No route plotted';
+      els.routeSummary.textContent=state.midPassage?'Choose either end of this passage. Each is 1 day away.':`Click an adjacent node to build your route, or a distant node to auto-route. Food: ${state.stores.food}.`;
+      els.nextLeg.textContent='—';els.sail.disabled=true;els.clearRoute.disabled=true;
+    }else{
+      const destination=nodeById(plan.path[plan.path.length-1]);
+      const next=nodeById(plan.path[1]);
+      const nextDays=plan.midPassage?1:edgeDays(edgeBetween(plan.path[0],plan.path[1]));
+      const finalFood=state.stores.food-routeFoodCost(plan);
+      els.destination.textContent=destination?.name||'—';
+      els.routeSummary.textContent=`${plan.path.length-1} leg${plan.path.length===2?'':'s'} · ${plan.days} day${plan.days===1?'':'s'} · Food ${state.stores.food} → ${finalFood}`;
+      els.nextLeg.textContent=next?`${next.name} · ${nextDays} day${nextDays===1?'':'s'} · −${nextDays*foodRate()} Food`:'—';
+      els.sail.disabled=!next||state.status!=='active';els.clearRoute.disabled=false;
+    }
+    els.sail.textContent=plan?.path?.[1]?`SAIL NEXT LEG · ${plan.midPassage?1:edgeDays(edgeBetween(plan.path[0],plan.path[1]))}d`:'SAIL NEXT LEG';
   }
 
   function render(){
-    const plan=currentPlan();renderEdges(plan);renderNodes(plan);renderEnemies();renderHud(plan);
+    const plan=currentPlan();renderEdges(plan);renderNodes(plan);renderEntities();renderHud(plan);
   }
 
   function advanceEnemies(){
@@ -166,42 +272,74 @@
     }
   }
 
-  function enemyAtCurrentNode(){
-    for(const def of World.enemies){const e=state.enemies[def.id];if(e?.active&&e.nodeId===state.currentNodeId)return {def,entity:e};}
+  function advanceTime(days){
+    const whole=Math.max(0,Math.round(Number(days)||0));
+    if(!whole)return;
+    state.day+=whole;
+    state.stores.food-=foodRate()*whole;
+    advanceEnemies();
+  }
+
+  function enemyAtNode(nodeId){
+    for(const def of World.enemies){const e=state.enemies[def.id];if(e?.active&&e.nodeId===nodeId)return {def,entity:e};}
     return null;
   }
 
-  function sailNextLeg(){
-    const plan=currentPlan();if(!plan||plan.path.length<2||state.status!=='active')return;
-    closeModal();
-    const from=plan.path[0],to=plan.path[1],edge=edgeBetween(from,to);if(!edge)return;
-    state.day+=edgeDays(edge);state.currentNodeId=to;
+  function arriveAtNode(from,to,days){
+    const threatBeforeMove=enemyAtNode(to);
+    advanceTime(days);
+    state.currentNodeId=to;
+    state.lastLeg={fromNodeId:from,toNodeId:to,days};
     if(!state.visitedNodeIds.includes(to))state.visitedNodeIds.push(to);
-    // Catch a ship already at the destination before the world tick, then move the living world
-    // and catch a ship that arrives there during the same travel leg. This is a deliberately
-    // simple interception model until edge-crossing/pursuit timing is designed.
-    const threatBeforeMove=enemyAtCurrentNode();
-    advanceEnemies();
-    const threatAfterMove=enemyAtCurrentNode();
-    if(state.plannedDestinationId===to)state.plannedDestinationId=null;
+    const threatAfterMove=enemyAtNode(to);
+
+    if(Array.isArray(state.plannedRoute)&&state.plannedRoute[0]===from&&state.plannedRoute[1]===to){
+      state.plannedRoute=state.plannedRoute.slice(1);
+      if(state.plannedRoute.length<2)state.plannedRoute=[];
+    }else state.plannedRoute=[];
+    state.plannedDestinationId=state.plannedRoute.length?state.plannedRoute[state.plannedRoute.length-1]:null;
     Adventure.save(state);render();
+
     const threat=threatBeforeMove||threatAfterMove;
     if(threat){openThreat(threat.def,threat.entity);return;}
     openLocation(nodeById(to),true);
   }
 
-  function modalShell({kicker,title,copy}){
-    activeModal=true;els.modal.hidden=false;els.modalCard.innerHTML='';
+  function sailFromMidPassage(plan){
+    const target=plan?.path?.[1],mid=state.midPassage;if(!target||!mid)return;
+    const from=target===mid.toNodeId?mid.fromNodeId:mid.toNodeId;
+    closeModal(true);
+    advanceTime(1);
+    state.currentNodeId=target;
+    state.lastLeg={fromNodeId:from,toNodeId:target,days:1,fromMidPassage:true};
+    state.midPassage=null;state.plannedRoute=[];state.plannedDestinationId=null;
+    if(!state.visitedNodeIds.includes(target))state.visitedNodeIds.push(target);
+    const threat=enemyAtNode(target);
+    Adventure.save(state);render();
+    if(threat){openThreat(threat.def,threat.entity);return;}
+    openLocation(nodeById(target),true);
+  }
+
+  function sailNextLeg(){
+    const plan=currentPlan();if(!plan||plan.path.length<2||state.status!=='active')return;
+    if(plan.midPassage){sailFromMidPassage(plan);return;}
+    closeModal(true);
+    const from=plan.path[0],to=plan.path[1],edge=edgeBetween(from,to);if(!edge)return;
+    arriveAtNode(from,to,edgeDays(edge));
+  }
+
+  function modalShell({kicker,title,copy,locked=false}){
+    activeModal={locked};els.modal.hidden=false;els.modalCard.innerHTML='';
     const head=document.createElement('div');head.className='modal-head';head.innerHTML=`<div class="modal-kicker">${kicker||''}</div><h2>${title||''}</h2><p>${copy||''}</p>`;els.modalCard.appendChild(head);
     return els.modalCard;
   }
-  function closeModal(){activeModal=null;els.modal.hidden=true;els.modalCard.innerHTML='';}
+  function closeModal(force=false){if(activeModal?.locked&&!force)return;activeModal=null;els.modal.hidden=true;els.modalCard.innerHTML='';}
   function actions(...buttons){const row=document.createElement('div');row.className='modal-actions';buttons.filter(Boolean).forEach(b=>row.appendChild(b));els.modalCard.appendChild(row);}
-  function button(label,onClick,className='') {const b=document.createElement('button');b.type='button';b.className=`modal-button ${className}`;b.textContent=label;b.addEventListener('click',onClick);return b;}
+  function button(label,onClick,className=''){const b=document.createElement('button');b.type='button';b.className=`modal-button ${className}`;b.textContent=label;b.addEventListener('click',onClick);return b;}
 
   function openPort(node){
     const major=node.type==='majorPort';
-    modalShell({kicker:major?'MAJOR PORT':'MINOR PORT',title:node.name,copy:'Market counter · purchases are tracked for this map prototype but are not connected to ship storage yet.'});
+    modalShell({kicker:major?'MAJOR PORT':'MINOR PORT',title:node.name,copy:`Market counter · The Wayward consumes ${foodRate()} Food per sailing day. Storage limits are not enforced in this map pass.`});
     const counter=document.createElement('div');counter.className='market-counter';
     const coinRow=document.createElement('div');coinRow.className='market-wallet';coinRow.innerHTML=`<span>COIN</span><strong>${state.coins}</strong>`;counter.appendChild(coinRow);
     Object.entries(World.market).forEach(([key,item])=>{
@@ -212,66 +350,135 @@
         state.coins-=item.cost;state.stores[key]+=item.amount;Adventure.save(state);render();openPort(node);
       },'buy');buy.disabled=state.coins<item.cost;row.appendChild(buy);counter.appendChild(row);
     });
-    els.modalCard.appendChild(counter);actions(button('LEAVE PORT',closeModal,'secondary'));
+    els.modalCard.appendChild(counter);actions(button('LEAVE PORT',()=>closeModal(true),'secondary'));
+  }
+
+  function addReward(reward={}){
+    state.coins+=Number(reward.coins)||0;
+    Object.entries(reward.stores||{}).forEach(([key,value])=>{state.stores[key]=(Number(state.stores[key])||0)+(Number(value)||0);});
+  }
+  function rewardText(reward={}){
+    const parts=[];if(reward.coins)parts.push(`+${reward.coins} coin`);
+    Object.entries(reward.stores||{}).forEach(([key,value])=>parts.push(`+${value} ${key==='cannonballs'?'cannonballs':key}`));
+    return parts.join(' · ')||'No stores';
   }
 
   function openPoi(node){
     const done=state.resolvedPoiIds.includes(node.id);
-    const copy=done?'You have already explored this location.':'A simple interaction placeholder for the route prototype. Later this becomes a short event with information, risk and opportunity cost.';
-    modalShell({kicker:node.poiKind==='wreck'?'SHIPWRECK':'POINT OF INTEREST',title:node.name,copy});
-    if(done){actions(button('SAIL ON',closeModal,'secondary'));return;}
-    actions(
-      button('EXPLORE',()=>{state.resolvedPoiIds.push(node.id);Adventure.save(state);render();modalShell({kicker:'EXPLORED',title:node.name,copy:'The location is now marked complete. Rewards and story consequences will be added in the interaction pass.'});actions(button('CONTINUE',closeModal));}),
-      button('SAIL ON',closeModal,'secondary')
-    );
+    if(done){modalShell({kicker:node.poiKind==='wreck'?'SHIPWRECK':'POINT OF INTEREST',title:node.name,copy:'You have already explored this location.'});actions(button('SAIL ON',()=>closeModal(true),'secondary'));return;}
+
+    if(node.poiKind==='wreck'){
+      modalShell({kicker:'SHIPWRECK',title:node.name,copy:`Choose how long to search. Extra days consume ${foodRate()} Food each and advance the world.`});
+      const quick=World.wreckRewards.quick,thorough=World.wreckRewards.thorough;
+      actions(
+        button(`QUICK SEARCH · +${quick.days}d`,()=>resolveWreck(node,quick,'Quick search')),
+        button(`THOROUGH SEARCH · +${thorough.days}d`,()=>resolveWreck(node,thorough,'Thorough search')),
+        button('LEAVE WRECK',()=>closeModal(true),'secondary')
+      );
+      return;
+    }
+
+    modalShell({kicker:'POINT OF INTEREST',title:node.name,copy:'A simple interaction placeholder. Later this becomes a short event with information, risk and opportunity cost.'});
+    actions(button('EXPLORE',()=>{if(!state.resolvedPoiIds.includes(node.id))state.resolvedPoiIds.push(node.id);Adventure.save(state);render();modalShell({kicker:'EXPLORED',title:node.name,copy:'The location is now marked complete.'});actions(button('CONTINUE',()=>closeModal(true)));}),button('SAIL ON',()=>closeModal(true),'secondary'));
+  }
+
+  function resolveWreck(node,reward,label){
+    advanceTime(reward.days);addReward(reward);
+    if(!state.resolvedPoiIds.includes(node.id))state.resolvedPoiIds.push(node.id);
+    Adventure.save(state);render();
+    modalShell({kicker:'WRECK EXPLORED',title:node.name,copy:`${label}: ${rewardText(reward)}. ${reward.days} day${reward.days===1?'':'s'} passed; ${reward.days*foodRate()} Food consumed.`});
+    actions(button('CONTINUE',()=>closeModal(true)));
   }
 
   function openParadise(node){
     state.status='complete';Adventure.save(state);render();
     modalShell({kicker:'PROTOTYPE DESTINATION',title:node.name,copy:`The Wayward reaches Paradise Bay on Day ${state.day}. This is the end point of the current overworld prototype.`});
-    actions(button('RETURN TO MAIN MENU',()=>{window.location.href='../';}),button('KEEP CHART OPEN',closeModal,'secondary'));
+    actions(button('RETURN TO MAIN MENU',()=>{window.location.href='../';}),button('KEEP CHART OPEN',()=>closeModal(true),'secondary'));
   }
 
   function openLocation(node,fromTravel=false){
-    if(!node)return;
+    if(!node||state.midPassage)return;
     if(node.type==='majorPort'||node.type==='minorPort'){openPort(node);return;}
     if(node.type==='poi'){openPoi(node);return;}
     if(node.type==='paradise'){openParadise(node);return;}
-    if(fromTravel){modalShell({kicker:'ARRIVED',title:node.name,copy:'Open water. Plot the next leg when ready.'});actions(button('CONTINUE',closeModal));}
-    else {modalShell({kicker:'CURRENT LOCATION',title:node.name,copy:'Open water. No local interaction is attached yet.'});actions(button('CLOSE',closeModal,'secondary'));}
+    if(fromTravel){modalShell({kicker:'ARRIVED',title:node.name,copy:'Open water. Extend the plotted route or choose another destination.'});actions(button('CONTINUE',()=>closeModal(true)));}
+    else{modalShell({kicker:'CURRENT LOCATION',title:node.name,copy:'Open water. No local interaction is attached yet.'});actions(button('CLOSE',()=>closeModal(true),'secondary'));}
   }
 
   function openEnemyInfo(def,entity){
-    if(entity.nodeId===state.currentNodeId){openThreat(def,entity);return;}
+    if(!state.midPassage&&entity.nodeId===state.currentNodeId){openThreat(def,entity);return;}
     const node=nodeById(entity.nodeId);
-    modalShell({kicker:'SHIP SIGHTING',title:def.name,copy:`Threat ${'★'.repeat(def.threat)} · Last plotted at ${node?.name||'unknown waters'}. Ships currently advance on a simple deterministic patrol as time passes.`});
-    actions(button('PLOT TO CURRENT POSITION',()=>{state.plannedDestinationId=entity.nodeId;Adventure.save(state);closeModal();render();}),button('CLOSE',closeModal,'secondary'));
+    modalShell({kicker:'SHIP SIGHTING',title:def.name,copy:`Threat ${'★'.repeat(def.threat)} · Last plotted at ${node?.name||'unknown waters'}.`});
+    actions(button('PLOT TO CURRENT POSITION',()=>{if(state.midPassage)return;state.plannedRoute=[];state.plannedDestinationId=null;closeModal(true);handleNodeSelection(node);}),button('CLOSE',()=>closeModal(true),'secondary'));
   }
 
   function openThreat(def){
     modalShell({kicker:'THREAT ENCOUNTERED',title:def.name,copy:`Threat Rank ${'★'.repeat(def.threat)}. You know the vessel's coarse threat level; its internal rooms remain unknown until combat reveals them.`});
     const detail=document.createElement('div');detail.className='threat-summary';detail.innerHTML=`<span>YOUR SHIP</span><strong>THE WAYWARD</strong><span>THREAT</span><strong>${'★'.repeat(def.threat)}</strong>`;els.modalCard.appendChild(detail);
-    actions(button('ENGAGE',()=>launchCombat(def),'danger'),button('AVOID FOR NOW',closeModal,'secondary'));
+    actions(button('ENGAGE',()=>launchCombat(def),'danger'),button('AVOID FOR NOW',()=>closeModal(true),'secondary'));
   }
 
   function launchCombat(def){
-    Adventure.beginCombat({enemyId:def.id,enemySetupId:def.shipSetupId,encounterNodeId:state.currentNodeId,name:def.name,threat:def.threat});
+    Adventure.beginCombat({enemyId:def.id,enemySetupId:def.shipSetupId,encounterNodeId:state.currentNodeId,approachFromNodeId:state.lastLeg?.toNodeId===state.currentNodeId?state.lastLeg.fromNodeId:null,name:def.name,threat:def.threat});
     const url=new URL('../combat/combat.html',window.location.href);url.searchParams.set('mode','adventure');url.searchParams.set('player','wayward');url.searchParams.set('enemy',def.shipSetupId);url.searchParams.set('encounter',def.id);window.location.href=url.toString();
+  }
+
+  function markCombatRewardResolved(){
+    if(!state.lastCombat)return;
+    state.lastCombat.rewardResolved=true;state.lastSeenCombatAt=state.lastCombat.endedAt;Adventure.save(state);
+  }
+
+  function finishCombatReward(copy){
+    markCombatRewardResolved();render();
+    modalShell({kicker:'SALVAGE TAKEN',title:'STORES UPDATED',copy});
+    actions(button('CONTINUE',()=>closeModal(true)),button('MAIN MENU',()=>{window.location.href='../';},'secondary'));
+  }
+
+  function offerExtraSalvage(kind,baseCopy){
+    const table=World.combatRewards[kind];
+    const extra=kind==='surrender'?table?.strip:table?.salvage;
+    if(!extra){finishCombatReward(baseCopy);return;}
+    modalShell({kicker:kind==='surrender'?'SURRENDERED SHIP':'SALVAGE WINDOW',title:kind==='surrender'?'STRIP THE SHIP?':'STAY AND SALVAGE?',copy:`${baseCopy} Stay +${extra.days} day to take ${rewardText(extra)}. The extra day also consumes ${extra.days*foodRate()} Food.`,locked:true});
+    actions(button(`STAY +${extra.days}d`,()=>{advanceTime(extra.days);addReward(extra);finishCombatReward(`${baseCopy} Extra salvage: ${rewardText(extra)}.`);}),button('SAIL ON',()=>finishCombatReward(baseCopy),'secondary'));
+  }
+
+  function showVictoryLoot(last){
+    if(last.kind==='sunk'){
+      const reward=World.combatRewards.sunk;addReward(reward);markCombatRewardResolved();render();
+      modalShell({kicker:'WRECKAGE',title:`${last.name||'ENEMY SHIP'} SUNK`,copy:`The ship went under before you could choose what to take. You recover only ${rewardText(reward)}.`});
+      actions(button('CONTINUE',()=>closeModal(true)),button('MAIN MENU',()=>{window.location.href='../';},'secondary'));
+      return;
+    }
+
+    const kind=last.kind==='surrender'?'surrender':'victory';
+    const table=World.combatRewards[kind];
+    modalShell({kicker:last.kind==='surrender'?'PRIZE TAKEN':'VICTORY',title:last.name||'ENEMY DEFEATED',copy:'Choose what to take first. This is deliberately a tiny-number prototype economy; cargo capacity is not enforced yet.',locked:true});
+    actions(button(`TAKE COIN · ${rewardText(table.coin)}`,()=>{addReward(table.coin);Adventure.save(state);render();offerExtraSalvage(kind,`Prize: ${rewardText(table.coin)}.`);}),button(`TAKE STORES · ${rewardText(table.stores)}`,()=>{addReward(table.stores);Adventure.save(state);render();offerExtraSalvage(kind,`Prize: ${rewardText(table.stores)}.`);}) );
   }
 
   function showReturnedCombat(){
     const last=state.lastCombat;if(!last||!last.endedAt||last.endedAt<=Number(state.lastSeenCombatAt||0))return false;
+    if((last.kind==='sunk'||last.kind==='surrender'||last.kind==='victory')&&!last.rewardResolved){showVictoryLoot(last);return true;}
+
     state.lastSeenCombatAt=last.endedAt;Adventure.save(state);
-    const won=['sunk','surrender','victory'].includes(last.kind),fled=last.kind==='fled',defeated=last.kind==='defeat';
-    const title=won?'ENGAGEMENT WON':fled?'YOU BROKE AWAY':defeated?'THE WAYWARD WAS SUNK':'COMBAT ENDED';
-    const copy=won?`${last.name||'The enemy'} is removed from the map for this prototype.`:fled?'The enemy remains active on the chart and may be encountered again.':defeated?'This adventure is marked ended. Persistent ship damage and recovery will be connected when the ship-management layer is built.':'You have returned to the chart.';
-    modalShell({kicker:'RETURN TO MAP',title,copy});
-    actions(defeated?button('NEW ADVENTURE',()=>{Adventure.newAdventure();window.location.reload();}):button('CONTINUE',closeModal),button('MAIN MENU',()=>{window.location.href='../';},'secondary'));
-    return true;
+    if(last.kind==='fled'){
+      const mid=state.midPassage,a=nodeById(mid?.fromNodeId),b=nodeById(mid?.toNodeId);
+      modalShell({kicker:'YOU BROKE AWAY',title:'MID-PASSAGE',copy:mid?`The enemy remains active. You are between ${a?.name||'the last position'} and ${b?.name||'the encounter'}. Either end is exactly 1 day away and costs ${foodRate()} Food.`:'The enemy remains active on the chart.'});
+      if(mid){actions(button(`SAIL TO ${a.name} · 1d`,()=>{state.plannedRoute=[a.id];state.plannedDestinationId=a.id;Adventure.save(state);closeModal(true);render();}),button(`SAIL TO ${b.name} · 1d`,()=>{state.plannedRoute=[b.id];state.plannedDestinationId=b.id;Adventure.save(state);closeModal(true);render();}),button('CLOSE',()=>closeModal(true),'secondary'));}
+      else actions(button('CONTINUE',()=>closeModal(true)));
+      return true;
+    }
+
+    if(last.kind==='defeat'){
+      modalShell({kicker:'RETURN TO MAP',title:'THE WAYWARD WAS SUNK',copy:'This adventure is marked ended. Persistent recovery is not connected yet.'});
+      actions(button('NEW ADVENTURE',()=>{Adventure.newAdventure();window.location.reload();}),button('MAIN MENU',()=>{window.location.href='../';},'secondary'));return true;
+    }
+
+    modalShell({kicker:'RETURN TO MAP',title:'COMBAT ENDED',copy:'You have returned to the chart.'});actions(button('CONTINUE',()=>closeModal(true)),button('MAIN MENU',()=>{window.location.href='../';},'secondary'));return true;
   }
 
   els.sail.addEventListener('click',sailNextLeg);
-  els.clearRoute.addEventListener('click',()=>{state.plannedDestinationId=null;Adventure.save(state);render();});
+  els.clearRoute.addEventListener('click',()=>{state.plannedRoute=[];state.plannedDestinationId=null;Adventure.save(state);render();});
   els.openLocation.addEventListener('click',()=>openLocation(nodeById(state.currentNodeId)));
   els.reset.addEventListener('click',()=>{if(window.confirm('Start a fresh map run? Current map progress will be replaced.')){state=Adventure.newAdventure();ensureState();render();openPort(nodeById(World.startNodeId));}});
   els.modal.addEventListener('click',event=>{if(event.target===els.modal)closeModal();});
