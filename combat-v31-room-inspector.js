@@ -177,6 +177,27 @@
     locked=ref;renderInspector();
   },false);
 
+  function decorateFriendlyStorageLabels(){
+    for(const entity of playerRooms||[]){
+      const rule=Storage?.roomRule?.(entity.kind);if(!rule)continue;
+      const el=getEntityElement('player',entity.id);if(!el)continue;
+      let cap=el.querySelector('.room-capacity');
+      if(!cap){cap=document.createElement('div');cap.className='room-capacity';el.appendChild(cap);}
+      const snapshot=Adventure?.getRoomStorage?.(entity.id);
+      if(!snapshot){cap.textContent=`${rule.slots} SLOT${rule.slots===1?'':'S'}`;continue;}
+      if(entity.kind==='storage'){
+        const used=snapshot.slots.filter(Boolean).length;
+        cap.textContent=`${used} / ${snapshot.slotCount} SLOTS`;
+      }else if(entity.kind==='magazine'){
+        const qty=snapshot.slots.reduce((sum,slot)=>sum+(slot?.item==='cannonballs'?Number(slot.quantity)||0:0),0);
+        cap.textContent=`BALLS ${qty} / 6`;
+      }else if(entity.kind==='carpenter'){
+        const qty=snapshot.slots.reduce((sum,slot)=>sum+(slot?.item==='timber'?Number(slot.quantity)||0:0),0);
+        cap.textContent=`TIMBER ${qty} / 4`;
+      }
+    }
+  }
+
   function fixFleeLabel(){
     const row=document.getElementById('trackRow');if(!row||typeof PLAYER_MAST_MIN==='undefined')return;
     const cells=[...row.children];if(!cells.length)return;
@@ -198,11 +219,13 @@
     window.refresh=function(){
       const result=baseRefresh.apply(this,arguments);
       fixFleeLabel();
+      decorateFriendlyStorageLabels();
       renderInspector();
       return result;
     };
   }
-  window.addEventListener('adventure-storage-changed',renderInspector);
+  window.addEventListener('adventure-storage-changed',()=>{decorateFriendlyStorageLabels();renderInspector();});
   fixFleeLabel();
+  decorateFriendlyStorageLabels();
   renderInspector();
 })();
