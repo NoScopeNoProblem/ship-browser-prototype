@@ -3,58 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>High Seas — Dev Ship Select</title>
-  <link rel="stylesheet" href="ship-select.css?v=20260910az" />
+  <title>High Seas</title>
+  <link rel="stylesheet" href="menu.css?v=20260910ba" />
 </head>
 <body>
-  <main class="dev-shell">
-    <header class="dev-topbar">
-      <div><div class="eyebrow">Combat Sandbox · Dev Setup</div><h1>Select & Build Ships</h1></div>
-      <div class="dev-note">Full information is shown here for testing. Enemy support/storage rooms return to normal hidden-information rules when combat begins.</div>
-    </header>
-
-    <div class="builder-grid">
-      <section class="match-panel">
-        <div class="match-row">
-          <aside class="ship-list-panel">
-            <div class="list-title"><strong>PLAYER SHIPS</strong><span class="list-columns"><span>SHIP</span><span>SIZE</span><span>RANK</span></span></div>
-            <div class="ship-list" id="playerShipList"></div>
-          </aside>
-          <div class="preview-panel" id="playerShipPreview"></div>
-          <button class="customise" id="playerCustomise" type="button">CUSTOMISE PLAYER</button>
-        </div>
-
-        <div class="match-row">
-          <aside class="ship-list-panel">
-            <div class="list-title"><strong>ENEMY SHIPS</strong><span class="list-columns"><span>SHIP</span><span>SIZE</span><span>RANK</span></span></div>
-            <div class="ship-list" id="enemyShipList"></div>
-          </aside>
-          <div class="preview-panel" id="enemyShipPreview"></div>
-          <button class="customise" id="enemyCustomise" type="button">CUSTOMISE ENEMY</button>
-        </div>
-
-        <div class="start-wrap"><button class="start-combat" id="startCombat" type="button">START COMBAT</button></div>
-      </section>
-
-      <aside class="editor-panel" id="shipEditor">
-        <div class="editor-head"><h2>SHIP EDITOR</h2><button class="close-edit" id="stopEditing" type="button">CLOSE</button></div>
-        <div class="editor-empty" id="editorEmpty">Choose <b>CUSTOMISE</b> on either ship. Hover rooms to inspect them, click a room to lock selection, then choose a replacement from the room library.</div>
-        <div class="editor-body" id="editorBody" hidden>
-          <div class="edit-kicker" id="editorSide"></div>
-          <div class="field"><label>SHIP NAME</label><input id="shipName" maxlength="32" /></div>
-          <div class="field"><label>HULL SIZE</label><div class="size-toggle"><button id="size3" type="button">3×2</button><button id="size4" type="button">4×2</button></div></div>
-          <div class="field"><label>MAST HP</label><div class="stepper"><button id="mastHpDown" type="button">−</button><span id="mastHp">3</span><button id="mastHpUp" type="button">+</button></div></div>
-          <div class="field"><label>MAST COLUMN</label><select id="mastColumn"></select></div>
-          <div class="field"><label>SELECTED ROOM</label><div class="selected-room-label" id="selectedRoomLabel"></div></div>
-          <div class="field"><label>ROOM HP</label><div class="stepper"><button id="roomHpDown" type="button">−</button><span id="roomHp">—</span><button id="roomHpUp" type="button">+</button></div></div>
-          <div class="library-title">ROOM LIBRARY</div>
-          <div class="room-library" id="roomLibrary"></div>
-          <div class="editor-actions"><button id="saveShip" type="button">SAVE</button><button id="saveAsShip" type="button">SAVE AS NEW</button><button id="deleteShip" class="wide delete-ship" type="button" hidden>DELETE SAVED SHIP</button></div>
-        </div>
-      </aside>
-    </div>
+  <main class="menu-shell">
+    <header class="menu-head"><div class="eyebrow">High Seas · Prototype</div><h1>HIGH SEAS</h1><p>Choose the current game prototype or the standalone combat laboratory.</p></header>
+    <section class="menu-grid">
+      <button class="menu-card primary" id="newAdventure" type="button"><span class="tag">GAME PROTOTYPE</span><h2>NEW ADVENTURE</h2><p>Set sail aboard The Wayward. Plot a route across the First Sea, visit ports and points of interest, meet moving threats and reach Paradise Bay.</p></button>
+      <a class="menu-card battler" href="combat/"><span class="tag">DEVELOPMENT TOOL</span><h2>SHIP BATTLER</h2><p>Open yesterday's ship builder and deterministic combat sandbox to construct and test matchups directly.</p></a>
+    </section>
+    <div class="menu-foot">Map, combat and future ship management are separate screens sharing one adventure state.</div>
   </main>
-  <script src="combat-v11-data.js?v=20260910az"></script>
-  <script src="ship-select.js?v=20260910az"></script>
+  <script src="shared/adventure-state.js?v=20260910ba"></script>
+  <script>document.getElementById('newAdventure').addEventListener('click',()=>{HighSeasAdventure.newAdventure();window.location.href='world/';});</script>
 </body>
 </html>
