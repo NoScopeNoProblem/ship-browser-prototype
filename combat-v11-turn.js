@@ -47,7 +47,7 @@
     let cursor=entity.hp-1;
     for(let i=0;i<hits&&cursor>=0;i++,cursor--) arr[cursor]='<span class="hit">✕</span>';
     for(let i=0;i<dodges&&cursor>=0;i++,cursor--) arr[cursor]='<span class="dodged-mark">↝</span>';
-    for(let i=0;i<prevented&&cursor>=0;i++,cursor--) arr[cursor]='<span class="prevented-mark">⊘</span>';
+    for(let i=0;i<prevented&&cursor>=0;i++,cursor--) arr[cursor]='<span class="prevented-mark" title="Prevented: enemy action cancelled">⊘</span>';
     return arr.join(' ');
   };
 
@@ -87,7 +87,7 @@
     intents.forEach(intent=>{ const src=sourceEntity('player',intent.sourceId); if(!src)return; const chip=document.createElement('div'); chip.className='intent-chip friendly'; chip.dataset.sourceId=intent.sourceId; chip.dataset.side='player'; chip.innerHTML=iconMarkup(src.weapon,playerSuffix[src.id]||'',true); chip.addEventListener('mouseenter',e=>{e.stopPropagation();beginIntentHover('player',intent.sourceId);}); chip.addEventListener('mouseleave',endIntentHover); stack.appendChild(chip); });
   };
   addMissMarker=function(intent){
-    const source=sourceEntity('enemy',intent.sourceId); if(!source)return; const marker=document.createElement('div'); marker.className='miss-marker'; marker.dataset.sourceId=intent.sourceId; marker.style.left=`${worldColX(intent.targetWorld)+10}px`; marker.style.top=`${laneY('player',intent.lane)+34}px`; marker.innerHTML=`${iconMarkup(source.weapon,enemySuffix[source.id]||'',true)}<span class="miss-text">MISS</span>`; marker.addEventListener('mouseenter',()=>beginIntentHover('enemy',intent.sourceId)); marker.addEventListener('mouseleave',endIntentHover); stage.appendChild(marker);
+    const source=sourceEntity('enemy',intent.sourceId); if(!source)return; const marker=document.createElement('div'); marker.className='miss-marker'; marker.dataset.sourceId=intent.sourceId; marker.style.left=`${worldColX(intent.targetWorld)+10}px`; marker.style.top=`${laneY('player',intent.lane)+34}px`; marker.innerHTML=`${iconMarkup(source.weapon,enemySuffix[source.id]||'',true)}<span class="miss-text">MISS</span>`; marker.addEventListener('mouseenter',()=>beginIntentHover('enemy',source.id)); marker.addEventListener('mouseleave',endIntentHover); stage.appendChild(marker);
   };
 
   function clearIntentFocusOnly(){ arcOverlay.innerHTML=''; document.querySelectorAll('.focus-source,.focus-target,.friendly-focus-target,.v3-focus-miss').forEach(el=>el.classList.remove('focus-source','focus-target','friendly-focus-target','v3-focus-miss')); }
@@ -213,7 +213,19 @@
 
     if(window.combatHooks?.afterEnemyFire){await window.combatHooks.afterEnemyFire({turn:resolvingTurn,logLine,floatNote,wait});refresh();}
     if(window.combatEnded){endResolutionForCombatEnd();return;}
-    finishLoadsThatStartedTurn(loadingAtStart);phase.turn++;phase.startMast=state.playerMastTrack;state.turnStartMast=state.playerMastTrack;retargetEnemyIntents();phase.resolving=false;endTurn.disabled=false;phaseLabel.classList.remove('visible');document.body.classList.remove('v3-resolving');renderShips();refresh();
+    finishLoadsThatStartedTurn(loadingAtStart);
+    phase.turn++;
+    phase.startMast=state.playerMastTrack;
+    state.turnStartMast=state.playerMastTrack;
+    retargetEnemyIntents();
+
+    // Build and claim the next intention phase before the first post-resolution render. This
+    // prevents one frame of unrevealed next-turn damage (especially Magazine collateral) from
+    // being painted before the sequential intention presentation takes ownership.
+    window.enemyAI?.rebuildForTurn?.();
+    window.enemyAI?.replay?.();
+
+    phase.resolving=false;endTurn.disabled=false;phaseLabel.classList.remove('visible');document.body.classList.remove('v3-resolving');renderShips();refresh();
   }
 
   endTurn.addEventListener('click',resolveTurn);
