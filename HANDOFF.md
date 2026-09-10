@@ -4,17 +4,17 @@
 **Repository:** `NoScopeNoProblem/ship-browser-prototype`  
 **Branch:** `main`
 
-Fetch current `main` before editing. This file is intentionally short and should eventually disappear: the Google GDD is the game-design authority and the TDD records implementation detail.
+Fetch current `main` before editing. This file is intentionally concise: the Google GDD is the game-design authority, the TDD records implementation detail, and current `main` is executable truth.
 
 ## Authority
 
 - GDD Section 16: current Combat Prototype rules.
 - GDD Section 17: current World Map / Adventure rules.
 - GDD Section 18: current Ship Management / shared cargo rules.
-- TDD Section 25: current Adventure ↔ Ship Management ↔ Combat technical integration.
-- Current `main`: executable implementation.
+- TDD Section 25: Adventure ↔ Ship Management ↔ Combat integration history.
+- Current `main`: executable implementation; later explicit designer decisions in main/HANDOFF supersede stale implementation notes in older document paragraphs.
 
-Do not revive older conflicting storage/combat wording from earlier GDD/TDD sections. Do not casually bulk-move/refactor the proven root combat modules while working on voyage systems.
+Do not revive older conflicting storage/combat wording. Do not casually bulk-move/refactor the proven root combat modules while working on voyage systems.
 
 ## Live entry points
 
@@ -24,29 +24,42 @@ Do not revive older conflicting storage/combat wording from earlier GDD/TDD sect
 - Ship Battler: `https://noscopenoproblem.github.io/ship-browser-prototype/combat/`
 - Adventure combat: `combat/combat.html?mode=adventure&player=wayward&enemy=<setup>&encounter=<id>`
 
-GitHub Pages may lag after a push; hard-refresh before diagnosing a stale deployment.
+GitHub Pages may lag after a push; hard-refresh before diagnosing stale deployment.
 
-## Current connected build
+## Current connected voyage state
 
-The browser prototype now has the three major voyage screens connected by one persistent adventure state: World Map ↔ Ship Management ↔ Adventure Combat.
+The browser prototype now has World Map ↔ Ship Management ↔ Adventure Combat connected by persistent adventure state. `shared/ship-storage.js` owns physical cargo; `shared/ship-voyage.js` owns persistent Wayward room/Mast integrity plus voyage-level cargo/repair/reward helpers; `shared/adventure-state.js` persists the run.
 
-`shared/ship-storage.js` is the physical cargo authority. `shared/adventure-state.js` persists that cargo plus run state. Current fresh Wayward stores are 3 coin, 6 Food, 6 Cannonballs, 4 Timber, 0 Medicine. Holds have 3 flexible slots; Magazine has 2 Cannonball-only slots; Carpenter has 1 Timber-only slot. Stack limits are Food 12, Cannonballs 3, Timber 4, Medicine 1. Packing prioritises Magazine/Carpenter and compacts/splits like cargo evenly where practical.
+Fresh Wayward stores are 3 coin, 6 Food, 6 Cannonballs, 4 Timber, 0 Medicine. Holds have 3 flexible slots; Magazine has 2 Cannonball-only slots; Carpenter has 1 Timber-only slot. Stack limits are Food 12, Cannonballs 3, Timber 4, Medicine 1. Automatic balancing can spread general cargo between living Holds while specialist sorting prioritises Magazine/Carpenter.
 
-`/ship/` is the Ship Management screen. It uses the Wayward 3×2 side-slice, real cargo slots, drag/drop and click/drop whole-stack movement, a faint seven-cell combat track, Hold-X friendly range overlay, and an auto-sort toggle that is ON by default. Returning from combat automatically refills specialist stores when that toggle is enabled; SORT NOW performs the same repack manually.
+Combat now starts from persistent Wayward integrity and writes room/Mast damage back into the voyage. Destroying a friendly Hold destroys the cargo physically stored in that Hold. Adventure cannon fire spends Cannonballs; Carpenter Repair spends Timber with planning rollback before resolution. Food, Cannonballs and Timber remain visible in the Adventure combat HUD, and friendly storage inspection shows exact contents.
 
-Adventure combat retains its proven ship/track geometry. The lower UI is now one consolidated readable room inspector with temporary room art, existing Selected/Effect information and storage together. Hidden enemy ??? information rules are preserved. Cannonballs and Timber have prominent bottom-right counters. Actual player fire spends Cannonballs; player Repair spends Timber with R rollback before resolution.
+Ship Management supports per-section repair and Repair All using persistent Timber. A destroyed Mast blocks overworld sailing until repaired. Player-facing management/report copy calls this **ship damage**, not “blips”.
 
-Medicine is a Hold-only one-slot trade crate. Seabrook sells for 1 coin. Sunreach pays 3 coin through purchase day +8, 2 through +10, then 1. This is provisional economy tuning.
+## Post-combat report
 
-Temporary room art under `assets/rooms/` is prototype scaffolding derived from the supplied visual reference; combat itself has not been art-reskinned.
+Adventure combat exits directly to `/ship/?postCombat=1`. The Adventure bridge synchronously hides the legacy final outcome card before navigation so surrender/sink results do not flash the old combat result screen first.
 
-## Unresolved seams only
+The post-combat report is now docked into the Ship Management side column rather than presented as a blurred full-screen overlay. The ship board, physical Hold contents and Day/Coin/Food/Cannonballs/Timber HUD remain visible while rewards are chosen.
 
-1. **Persistent ship damage:** combat room/Mast HP is still fresh per encounter. Next cross-screen milestone is one persistent ship instance carrying damage plus stores into combat and back.
-2. **Cargo consequences:** destroyed storage rooms do not yet lose/displace cargo because persistent damage is not connected.
-3. **Capacity/shortage enforcement:** over-capacity stock and negative resources are still allowed through temporary overflow/debt. Overboard choices, starvation and hard zero-ammo rules remain to design.
-4. **Medicine balance:** route deadline/prices are prototype calibration, not frozen balance.
-5. **World systems still intentionally provisional:** fixed authored topology, scripted enemy patrols, non-living weather, simple ports/POIs and incomplete rumours/intel remain later work.
-6. **Browser validation:** this integration has been source/state-model checked but still needs designer testing on the published GitHub Pages build.
+Report hierarchy is deliberate: Ship Damage first with **Damage Taken**, live **Damage Remaining**, and **Repair All** when the Carpenter works and enough Timber is aboard; then informational Cost of the Fight vs What You Have Gained columns; then a visually separate gold **CHOICE** section for mutually exclusive reward decisions and optional salvage. Post-combat repairs update remaining damage/Timber without rewriting historical Damage Taken.
 
-Everything else completed in this pass belongs in the GDD/TDD rather than being accumulated here.
+Rewards continue to respect fitted storage capacity. Accepted cargo and anything left behind/overboard are reported separately.
+
+## World / First Sea current rules
+
+Travel consumes 4 Food per day. Wind passages are directional: a 1-day favourable traversal becomes a 3-day adverse traversal when sailed in reverse; pathfinding, route totals, Food forecasts, edge labels and next-leg UI use that same directional cost. Sailing a leg plays a short moving/bobbing player-ship animation before time/arrival commits.
+
+Evading a hostile encounter costs 1 day and 4 Food at the current Wayward rate; the option states the cost before selection and world time/threat movement advances normally.
+
+First Sea POIs are intentionally more generous with provisions. Exploration now grants physical rewards and previews them before EXPLORE: Whispering Reef gives 8 Food + 1 Timber; Lantern Atoll gives 12 Food + 3 Cannonballs. Wreck searches now include Food: quick search gives 4 Food + 1 Timber; thorough search gives 8 Food + 2 Timber + 3 Cannonballs. Combat store choices continue to include Food in the 4–6 range. These are calibration values aimed at returning roughly half/all of a normal leg’s Food cost often enough to keep exploration attractive.
+
+Medicine remains a Hold-only one-slot trade crate. Seabrook sells for 1 coin. Sunreach pays 3 coin through purchase day +8, 2 through +10, then 1. This is provisional economy tuning.
+
+## Remaining seams
+
+1. Capacity decisions are only partly productised: purchases/rewards respect fitted capacity, but the full over-capacity/throw-overboard flow and starvation/zero-ammunition hard stops are still later work.
+2. Coins remain scalar rather than physical cargo in this browser slice.
+3. First Sea topology and threat patrols are authored/scripted calibration content; procedural braid generation, living weather/Chart Room forecasting, richer ports and rumours/intel remain later systems.
+4. Combat core still uses the proven layered vN compatibility architecture. Do not turn voyage polish into an incidental combat-state rewrite.
+5. Browser validation is designer-led. Source/state integration can be checked here, but do not mark presentation behaviour verified until exercised on the published build.
