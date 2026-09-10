@@ -46,7 +46,12 @@
   function renderIntentPips(entity,dist,id,{prevented=0}={}){
     const arr=[];
     for(let i=0;i<entity.max;i++) arr.push(i<entity.hp?'<span>♥</span>':'<span class="damage-empty">♡</span>');
-    let cursor=entity.hp-1;
+
+    // Brace owns the rightmost current integrity pip. Projected damage has already been reduced
+    // by the canonical distribution, so remaining damage begins one pip to the left rather than
+    // being painted underneath the protected-heart overlay.
+    const braced = Math.max(0,Math.min(entity.hp,Number(dist?.braced?.get(id)||0)));
+    let cursor=entity.hp-1-braced;
     damageTypesFor(dist,id).forEach(typeId => {
       if(cursor<0) return;
       const type=DAMAGE_TYPES[typeId]||DAMAGE_TYPES.cannon;
