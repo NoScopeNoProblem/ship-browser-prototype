@@ -61,7 +61,7 @@
     if(entity?.weapon==='heavy')return 'art-heavy';
     if(entity?.weapon)return 'art-standard';
     if(entity?.kind==='magazine')return 'art-magazine';
-    if(entity?.kind==='carpenter')return 'art-carpenter';
+    if(entity?.kind==='carpenter'||entity?.kind==='boatswain')return 'art-carpenter';
     if(entity?.kind==='storage')return 'art-hold';
     return 'art-mast';
   }
@@ -78,9 +78,9 @@
     if(entity.weapon)return weaponDescription(entity);
     if(entity.kind==='storage')return 'General Storage. Three cargo slots. Each slot holds up to 12 Food, 3 Cannonballs, 4 Timber, or one Medicine crate. CARGO LOST: destroying this Hold destroys everything stored in it.';
     if(entity.kind==='magazine')return 'Magazine. Two Cannonball-only slots, up to 3 balls in each. QUICK LOAD readies one orthogonally adjacent loading Gun Deck. Destroying the Magazine damages surrounding rooms.';
-    if(entity.kind==='carpenter')return 'Carpenter. One Timber-only slot holding up to 4. REPAIR restores 1 pip to a living room and spends 1 Timber in Adventure combat.';
+    if(entity.kind==='carpenter')return 'Carpenter. One Timber-only slot holding up to 4. REPAIR restores 1 ship damage to a living room and spends 1 Timber in Adventure combat.';
     if(entity.kind==='sailmaster')return 'Sailmaster. RESET SAILS clears the Mast Resetting cooldown so Manoeuvre can be used again this turn.';
-    if(entity.kind==='boatswain')return 'Boatswain. BRACE protects one reachable room or the Mast from the first 1 incoming damage this turn.';
+    if(entity.kind==='boatswain')return 'Boatswain. One Timber-only slot holding up to 4. BRACE protects one reachable room or the Mast from the first 1 incoming damage this turn and spends 1 Timber in Adventure combat. Once prepared, Brace still applies even if the Boatswain is destroyed before enemy fire.';
     return entity.sub||'No active combat verb.';
   }
 
@@ -136,7 +136,7 @@
       if(!snapshot){cap.textContent=`${rule.slots} SLOT${rule.slots===1?'':'S'}`;continue;}
       if(entity.kind==='storage'){const used=snapshot.slots.filter(Boolean).length;cap.textContent=`${used} / ${snapshot.slotCount} SLOTS`;}
       else if(entity.kind==='magazine'){const qty=snapshot.slots.reduce((sum,slot)=>sum+(slot?.item==='cannonballs'?Number(slot.quantity)||0:0),0);cap.textContent=`BALLS ${qty} / 6`;}
-      else if(entity.kind==='carpenter'){const qty=snapshot.slots.reduce((sum,slot)=>sum+(slot?.item==='timber'?Number(slot.quantity)||0:0),0);cap.textContent=`TIMBER ${qty} / 4`;}
+      else if(entity.kind==='carpenter'||entity.kind==='boatswain'){const qty=snapshot.slots.reduce((sum,slot)=>sum+(slot?.item==='timber'?Number(slot.quantity)||0:0),0);cap.textContent=`TIMBER ${qty} / 4`;}
     }
   }
 
