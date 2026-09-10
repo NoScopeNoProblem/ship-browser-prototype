@@ -34,6 +34,16 @@
     return dist;
   };
 
+  // Enemy Brace is prepared during the intention phase, before the player's volley resolves.
+  // Once armed, destroying the Boatswain later in that volley does not revoke the protection.
+  if(window.enemyAI?.currentActions){
+    enemyAI.braceCount=function(targetId){
+      const target=typeof sourceEntity==='function'?sourceEntity('enemy',targetId):null;
+      if(!target||target.hp<=0)return 0;
+      return enemyAI.currentActions().some(action=>action.actionType==='brace'&&action.targetId===targetId&&action.armed&&!action.consumed)?1:0;
+    };
+  }
+
   function fixPreparedBracePresentation(){
     document.querySelectorAll('.v11-enemy-action-chip.brace').forEach(chip=>{
       chip.classList.remove('cancelled');
