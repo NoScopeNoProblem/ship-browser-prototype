@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="../combat-v24-cadence-readability.css?v=20260910bb" />
   <link rel="stylesheet" href="../combat-v27-planning-runtime.css?v=20260910bb" />
   <link rel="stylesheet" href="../combat-v28-navigation.css?v=20260910bb" />
+  <link rel="stylesheet" href="../combat-v31-room-inspector.css?v=20260910bc" />
 </head>
 <body>
   <main class="app">
@@ -52,7 +53,8 @@
     </section>
     <section class="panel status-panel"><div><div class="eyebrow">Hovered / Selected</div><div id="weaponInfo" class="status-text">None</div></div><div><div class="eyebrow">Effect</div><div id="targetInfo" class="status-text">Hover an intent icon, or click a ready gun deck to plan a shot.</div></div></section>
   </main>
-  <script src="../shared/adventure-state.js?v=20260910bb"></script>
+  <script src="../shared/ship-storage.js?v=20260910bc"></script>
+  <script src="../shared/adventure-state.js?v=20260910bc"></script>
   <script src="../combat-v11-data.js?v=20260910bb"></script>
   <script>
     if(new URLSearchParams(window.location.search).get('mode')==='adventure'){
@@ -82,6 +84,7 @@
   <script src="../combat-v30-movement-state.js?v=20260910bb"></script>
   <script src="../combat-v29-no-target-feedback.js?v=20260910bb"></script>
   <script src="../combat-v28-navigation.js?v=20260910bb"></script>
-  <script src="../shared/adventure-combat-bridge.js?v=20260910bb"></script>
+  <script src="../combat-v31-room-inspector.js?v=20260910bc"></script>
+  <script src="../shared/adventure-combat-bridge.js?v=20260910bc"></script>
 </body>
 </html>
