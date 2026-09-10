@@ -10,9 +10,10 @@
   const resources=document.createElement('div');
   resources.className='adventure-resource-counter v32-visible-stores';
   resources.innerHTML=`
+    <div class="adventure-resource-chip"><span class="adventure-resource-icon">🍗</span><span class="adventure-resource-label">FOOD</span><strong class="adventure-resource-value" data-resource="food">0</strong></div>
     <div class="adventure-resource-chip"><span class="adventure-resource-icon">⚫</span><span class="adventure-resource-label">CANNONBALLS</span><strong class="adventure-resource-value" data-resource="cannonballs">0</strong></div>
     <div class="adventure-resource-chip"><span class="adventure-resource-icon">🪵</span><span class="adventure-resource-label">TIMBER</span><strong class="adventure-resource-value" data-resource="timber">0</strong></div>`;
-  resources.title='Voyage stores: every cannon fired spends 1 Cannonball; each planned Carpenter Repair spends 1 Timber. These are your persistent adventure stores.';
+  resources.title='Persistent voyage stores. Food does not affect the current combat; firing spends Cannonballs and Carpenter Repair spends Timber. Hover friendly storage rooms to see their exact physical contents.';
   document.body.appendChild(resources);
 
   const used={cannonballs:0,timber:0};
@@ -23,8 +24,8 @@
   function mergeLost(next={}){for(const [item,qty] of Object.entries(next||{}))cargoLost[item]=(cargoLost[item]||0)+(Number(qty)||0);}
   function updateResources(){
     const stores=Adventure.load().stores||{};
-    const balls=resources.querySelector('[data-resource="cannonballs"]'),timber=resources.querySelector('[data-resource="timber"]');
-    if(balls)balls.textContent=stores.cannonballs??0;if(timber)timber.textContent=stores.timber??0;
+    const food=resources.querySelector('[data-resource="food"]'),balls=resources.querySelector('[data-resource="cannonballs"]'),timber=resources.querySelector('[data-resource="timber"]');
+    if(food)food.textContent=stores.food??0;if(balls)balls.textContent=stores.cannonballs??0;if(timber)timber.textContent=stores.timber??0;
   }
   updateResources();window.addEventListener('adventure-storage-changed',updateResources);
 
