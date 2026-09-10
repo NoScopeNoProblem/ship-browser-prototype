@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = 2;
+  const VERSION = 3;
   const ITEMS = Object.freeze({
     food: { id:'food', name:'Food', stackSize:12, icon:'🍗' },
     cannonballs: { id:'cannonballs', name:'Cannonballs', stackSize:3, icon:'⚫' },
@@ -9,7 +9,8 @@
   const ROOM_RULES = Object.freeze({
     storage: { label:'General Storage', icon:'🛢️', slots:3, accepts:['food','cannonballs','timber','medicine'] },
     magazine: { label:'Magazine', icon:'⚫', slots:2, accepts:['cannonballs'] },
-    carpenter: { label:"Carpenter's Workshop", icon:'🪵', slots:1, accepts:['timber'] }
+    carpenter: { label:"Carpenter's Workshop", icon:'🪵', slots:1, accepts:['timber'] },
+    boatswain: { label:"Boatswain's Store", icon:'🪵', slots:1, accepts:['timber'] }
   });
   const DEFAULT_LAYOUTS = Object.freeze({
     wayward: [
@@ -95,7 +96,7 @@
 
   function priorityTypes(itemId){
     if(itemId==='cannonballs') return ['magazine','storage'];
-    if(itemId==='timber') return ['carpenter','storage'];
+    if(itemId==='timber') return ['carpenter','boatswain','storage'];
     return ['storage'];
   }
 
