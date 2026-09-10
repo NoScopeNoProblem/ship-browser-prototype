@@ -92,7 +92,8 @@
     if(ending)return;ending=true;syncRepairSpend();syncDestroyedHolds();
     const finalCapture=Voyage?.captureCombat?.(playerRooms,playerMast)||{};mergeLost(finalCapture.cargoLost);
     const finalUndamaged=[playerMast,...playerRooms].every(entity=>entity.hp>=entity.max);
-    const resultTier=finalUndamaged?(used.timber===0?'perfect':'noDamage'):'standard';
+    const kind=event.detail?.kind||'unknown',won=kind==='sunk'||kind==='surrender'||kind==='victory';
+    const resultTier=won&&finalUndamaged?(used.timber===0?'perfect':'noDamage'):'standard';
     const detail={...(event.detail||{}),report:{resourcesUsed:{...used},cargoLost:{...cargoLost},resultTier,finalUndamaged}};
     Adventure.recordCombatResult(detail);
     if(Voyage&&(detail.kind==='sunk'||detail.kind==='surrender'||detail.kind==='victory'))Voyage.recordCombatScore(resultTier);
