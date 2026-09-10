@@ -1,0 +1,7 @@
+:root{
+  --room-art-standard:url('../assets/rooms/standard.svg');
+  --room-art-magazine:url('../assets/rooms/magazine.svg');
+  --room-art-heavy:url('../assets/rooms/heavy.svg');
+  --room-art-hold:url('../assets/rooms/hold.svg');
+  --room-art-carpenter:url('../assets/rooms/carpenter.svg');
+}
