@@ -52,9 +52,10 @@
     return {min:Math.max(PLAYER_MAST_MIN,start-1),max:Math.min(PLAYER_MAST_MAX,start+1)};
   }
 
-  function fleeAttempt(direction){
-    return (direction<0&&state.playerMastTrack===PLAYER_MAST_MIN)||(direction>0&&state.playerMastTrack===PLAYER_MAST_MAX);
-  }
+  // Flee is an outward manoeuvre, not a free action after manoeuvring. The player must begin
+  // the turn at the left escape edge with sails available and must not already have moved.
+  function atFleeEdge(){return state.playerMastTrack===PLAYER_MAST_MIN;}
+  function canFlee(){return atFleeEdge()&&!movedThisTurn()&&!blockedReason();}
 
   function canStep(direction){
     const target=state.playerMastTrack+direction,b=bounds();
@@ -72,11 +73,14 @@
   function move(direction){
     const reason=blockedReason();
     if(reason){showBlocked(reason);return;}
-    if(fleeAttempt(direction)){
+
+    if(direction<0&&atFleeEdge()){
+      if(movedThisTurn()){showBlocked('Movement used — flee next turn');return;}
       if(window.combatOutcome?.offerFlee)combatOutcome.offerFlee();
       else showRoomTooltip(playerMastBox,'Flee route unavailable');
       return;
     }
+
     if(!canStep(direction)){showBlocked('Movement used');return;}
 
     const previous=state.playerMastTrack;
@@ -95,6 +99,7 @@
     if(movement.cooldown)return {kind:'cooldown',icon:'⛵',label:'RESETTING',title:'Sails resetting after last turn’s manoeuvre — movement unavailable this turn'};
     if(movedThisTurn())return {kind:'used',icon:'↔',label:'USED',title:'Manoeuvre planned — sails will need to reset next turn'};
     if(hasFiringPlan())return {kind:'locked',icon:'↔',label:'LOCKED',title:'Alignment locked by firing plan'};
+    if(atFleeEdge())return {kind:'ready',icon:'↔',label:'READY',title:'Manoeuvre ready — move right, or move left to flee'};
     return {kind:'ready',icon:'↔',label:'READY',title:'Manoeuvre ready — move one track segment fore or aft'};
   }
 
@@ -108,33 +113,36 @@
   }
 
   function decorateTrackAndButtons(){
-    const b=bounds(),blocked=!!blockedReason();
-    const fleeLeft=!blocked&&state.playerMastTrack===PLAYER_MAST_MIN;
-    const fleeRight=!blocked&&state.playerMastTrack===PLAYER_MAST_MAX;
+    const b=bounds(),blocked=!!blockedReason(),fleeReady=canFlee();
 
     moveAft.classList.toggle('v17-move-blocked',blocked);
     moveFore.classList.toggle('v17-move-blocked',blocked);
-    moveAft.classList.toggle('v17-flee-edge',fleeLeft);
-    moveFore.classList.toggle('v17-flee-edge',fleeRight);
+    moveAft.classList.toggle('v17-flee-edge',fleeReady);
+    moveFore.classList.remove('v17-flee-edge');
     if(blocked){
       moveAft.disabled=false;moveFore.disabled=false;
       moveAft.setAttribute('aria-disabled','true');moveFore.setAttribute('aria-disabled','true');
     }else{
       moveAft.removeAttribute('aria-disabled');moveFore.removeAttribute('aria-disabled');
-      moveAft.disabled=state.playerMastTrack<=b.min&&!fleeLeft;
-      moveFore.disabled=state.playerMastTrack>=b.max&&!fleeRight;
+      moveAft.disabled=state.playerMastTrack<=b.min&&!fleeReady;
+      moveFore.disabled=state.playerMastTrack>=b.max;
     }
-    if(fleeLeft)moveAft.title='Flee this engagement';else if(!blocked)moveAft.removeAttribute('title');
-    if(fleeRight)moveFore.title='Flee this engagement';else if(!blocked)moveFore.removeAttribute('title');
+    if(fleeReady)moveAft.title='Flee this engagement';else if(!blocked)moveAft.removeAttribute('title');
+    if(!blocked)moveFore.removeAttribute('title');
 
     trackRow.classList.toggle('v17-manoeuvre-cooldown',movement.cooldown);
     [...trackRow.children].forEach((cell,index)=>{
+      cell.querySelectorAll('.v30-flee-label').forEach(n=>n.remove());
       const current=index===state.playerMastTrack;
       let reachable=false;
       if(current)reachable=true;
       else if(!blocked&&index>=b.min&&index<=b.max&&index>=PLAYER_MAST_MIN&&index<=PLAYER_MAST_MAX)reachable=true;
       cell.classList.toggle('track-reachable',reachable);
       cell.classList.toggle('track-unreachable',!reachable);
+      cell.classList.toggle('v30-flee-track',index===PLAYER_MAST_MIN);
+      if(index===PLAYER_MAST_MIN){
+        const label=document.createElement('span');label.className='v30-flee-label';label.textContent='FLEE';label.title='Start a turn here with Manoeuvre READY, then move left to flee.';cell.appendChild(label);
+      }
     });
   }
 
@@ -173,13 +181,14 @@
     get status(){return status().kind;},
     get turn(){return combatTurn.turn;},
     get startMast(){return startMast();},
+    get canFlee(){return canFlee();},
     clearCooldown(){movement.cooldown=false;movement.pendingCooldown=false;refresh();},
     resetSails,
     setCooldown,
     canMove(){return !blockedReason();},
     get diagnostics(){return{
       turn:combatTurn.turn,anchorTurn:movement.anchorTurn,startMast:startMast(),currentMast:state.playerMastTrack,
-      moved:movedThisTurn(),status:status().kind,cooldown:movement.cooldown,legacyStartWrites:movement.legacyStartWrites
+      moved:movedThisTurn(),status:status().kind,cooldown:movement.cooldown,canFlee:canFlee(),legacyStartWrites:movement.legacyStartWrites
     };}
   };
 
