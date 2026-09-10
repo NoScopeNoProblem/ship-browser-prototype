@@ -14,10 +14,11 @@
     <div class="adventure-resource-chip"><span class="adventure-resource-icon">🍗</span><span class="adventure-resource-label">FOOD</span><strong class="adventure-resource-value" data-resource="food">0</strong></div>
     <div class="adventure-resource-chip"><span class="adventure-resource-icon">⚫</span><span class="adventure-resource-label">CANNONBALLS</span><strong class="adventure-resource-value" data-resource="cannonballs">0</strong></div>
     <div class="adventure-resource-chip"><span class="adventure-resource-icon">🪵</span><span class="adventure-resource-label">TIMBER</span><strong class="adventure-resource-value" data-resource="timber">0</strong></div>`;
-  resources.title='Persistent voyage stores. Food does not affect the current combat; firing spends Cannonballs and Carpenter Repair spends Timber. Hover friendly storage rooms to see their exact physical contents.';
+  resources.title='Persistent voyage stores. Food does not affect the current combat; firing spends Cannonballs, while Carpenter Repair and Boatswain Brace each spend Timber. Hover friendly storage rooms to see their exact physical contents.';
   document.body.appendChild(resources);
 
   const used={cannonballs:0,timber:0};
+  let repairTimberSpent=0;
   const cargoLost={};
   const seenDestroyed=new Set();
   [...(typeof playerRooms!=='undefined'?playerRooms:[]),...(typeof enemyRooms!=='undefined'?enemyRooms:[])].forEach(room=>{if(room.kind==='storage'&&room.hp<=0)seenDestroyed.add(room.id);});
@@ -67,26 +68,38 @@
     return baseAfterDamage?baseAfterDamage(ctx):false;
   };
 
-  const repairLedger=new Set(),committedRepairs=new Set();
+  const timberLedger=new Map(),committedTimber=new Set();
   let wasResolving=!!window.combatTurn?.resolving;
-  const repairKey=plan=>`${window.combatTurn?.turn||1}:${plan.sourceId}:${plan.targetId}`;
-  function syncRepairSpend(){
-    if(!window.combatUtility?.plannedRepairs)return;
-    const current=new Set(combatUtility.plannedRepairs().map(repairKey));
-    for(const key of current){if(repairLedger.has(key))continue;repairLedger.add(key);Adventure.spendTimber(1);used.timber+=1;}
-    for(const key of [...repairLedger]){
-      if(current.has(key))continue;repairLedger.delete(key);
-      if(committedRepairs.has(key))committedRepairs.delete(key);
-      else{Adventure.addItem('timber',1,{preferredRoomIds:['p_carp','p_hold1','p_hold2']});used.timber=Math.max(0,used.timber-1);}
+  const timberKey=(type,plan)=>`${window.combatTurn?.turn||1}:${type}:${plan.sourceId}:${plan.targetId}`;
+  function timberPlans(){
+    const plans=[];
+    if(window.combatUtility?.plannedRepairs)for(const plan of combatUtility.plannedRepairs())plans.push({type:'repair',...plan});
+    if(window.combatUtility?.bracePlans)for(const plan of combatUtility.bracePlans())plans.push({type:'brace',...plan});
+    return plans;
+  }
+  function syncTimberSpend(){
+    const current=new Map(timberPlans().map(plan=>[timberKey(plan.type,plan),plan]));
+    for(const [key,plan] of current){
+      if(timberLedger.has(key))continue;
+      timberLedger.set(key,plan);
+      Adventure.consumeItem('timber',1,{preferredRoomIds:[plan.sourceId,'p_carp','p_hold1','p_hold2']});
+      used.timber+=1;if(plan.type==='repair')repairTimberSpent+=1;
+    }
+    for(const [key,plan] of [...timberLedger]){
+      if(current.has(key))continue;
+      timberLedger.delete(key);
+      if(committedTimber.has(key)){committedTimber.delete(key);continue;}
+      Adventure.addItem('timber',1,{preferredRoomIds:[plan.sourceId,'p_carp','p_hold1','p_hold2']});
+      used.timber=Math.max(0,used.timber-1);if(plan.type==='repair')repairTimberSpent=Math.max(0,repairTimberSpent-1);
     }
     updateResources();
   }
 
   const baseRefresh=window.refresh;
-  if(typeof baseRefresh==='function')window.refresh=function(){const result=baseRefresh.apply(this,arguments);syncRepairSpend();syncDestroyedHolds();return result;};
+  if(typeof baseRefresh==='function')window.refresh=function(){const result=baseRefresh.apply(this,arguments);syncTimberSpend();syncDestroyedHolds();return result;};
   const phaseObserver=new MutationObserver(()=>{
     const now=!!window.combatTurn?.resolving;
-    if(!wasResolving&&now){syncRepairSpend();for(const key of repairLedger)committedRepairs.add(key);}wasResolving=now;
+    if(!wasResolving&&now){syncTimberSpend();for(const key of timberLedger.keys())committedTimber.add(key);}wasResolving=now;
   });
   phaseObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
 
@@ -96,11 +109,11 @@
     // The core outcome card becomes visible immediately before this event. Hide that legacy final
     // card synchronously so Adventure mode transitions straight to the ship report without a flash.
     document.body.classList.add('v33-adventure-exit');
-    syncRepairSpend();syncDestroyedHolds();
+    syncTimberSpend();syncDestroyedHolds();
     const finalCapture=Voyage?.captureCombat?.(playerRooms,playerMast)||{};mergeLost(finalCapture.cargoLost);
     const finalState=Voyage?.load?.();
     const damageRemaining=Voyage?.missingBlips?.(finalState)||0;
-    const damageTaken=Math.max(0,damageRemaining-startingDamage+(Number(used.timber)||0));
+    const damageTaken=Math.max(0,damageRemaining-startingDamage+repairTimberSpent);
     const finalUndamaged=damageRemaining===0;
     const kind=event.detail?.kind||'unknown',won=kind==='sunk'||kind==='surrender'||kind==='victory';
     const resultTier=won&&finalUndamaged?(used.timber===0?'perfect':'noDamage'):'standard';
