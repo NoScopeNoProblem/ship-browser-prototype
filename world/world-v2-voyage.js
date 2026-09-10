@@ -41,11 +41,25 @@
     setTimeout(()=>{const state=Voyage.load();if(state.shipSettings?.autoBalanceCargo)Voyage.rebalance();decorateMarket();updateQuickRepair();},0);
   });
 
+  const itemNames={food:'Food',cannonballs:'Cannonballs',timber:'Timber',medicine:'Medicine'};
+  function rewardDefinitionText(reward={}){
+    const icons=window.HighSeasShipStorage?.ITEMS||{},parts=[];
+    if(reward.coins)parts.push(`🪙 ${reward.coins} Coin`);
+    for(const [id,q] of Object.entries(reward.stores||{}))parts.push(`${icons[id]?.icon||'•'} ${q} ${itemNames[id]||id}`);
+    return parts.join(' · ')||'No stores';
+  }
   function rewardParts(summary={}){
-    const names={food:'Food',cannonballs:'Cannonballs',timber:'Timber',medicine:'Medicine'},icons=window.HighSeasShipStorage?.ITEMS||{},parts=[];
+    const icons=window.HighSeasShipStorage?.ITEMS||{},parts=[];
     if(summary.coins)parts.push(`🪙 +${summary.coins} Coin`);
-    for(const [id,q] of Object.entries(summary.accepted||{}))if(Number(q)>0)parts.push(`${icons[id]?.icon||'•'} +${q} ${names[id]||id}`);
+    for(const [id,q] of Object.entries(summary.accepted||{}))if(Number(q)>0)parts.push(`${icons[id]?.icon||'•'} +${q} ${itemNames[id]||id}`);
     return parts;
+  }
+  function decorateExploration(){
+    if(!modal)return;
+    const explore=[...modal.querySelectorAll('.modal-button')].find(b=>b.textContent.trim()==='EXPLORE');if(!explore)return;
+    const state=Voyage.load(),reward=World.explorationRewards?.[state.currentNodeId];if(!reward)return;
+    const copy=modal.querySelector('.modal-head p');
+    if(copy&&!copy.dataset.v33RewardPreview){copy.dataset.v33RewardPreview='1';copy.textContent=`Explore this location to recover ${rewardDefinitionText(reward)}. Cargo is loaded only where it fits.`;}
   }
   function updateWorldHud(){
     const state=Voyage.load(),pairs={dayValue:state.day,coinValue:state.coins,foodValue:state.stores?.food,ballValue:state.stores?.cannonballs,timberValue:state.stores?.timber};
@@ -58,7 +72,7 @@
     // the existing world closure keeps its resolved-node state while Adventure.save's revision
     // merge protects this newer cargo state on the next world save.
     setTimeout(()=>{
-      const summary=Voyage.acceptReward(reward),accepted=rewardParts(summary),left=Object.entries(summary.leftBehind||{}).filter(([,q])=>Number(q)>0).map(([id,q])=>`${q} ${id}`);
+      const summary=Voyage.acceptReward(reward),accepted=rewardParts(summary),left=Object.entries(summary.leftBehind||{}).filter(([,q])=>Number(q)>0).map(([id,q])=>`${q} ${itemNames[id]||id}`);
       updateWorldHud();
       const copy=modal?.querySelector('.modal-head p');
       if(copy){const flavour=reward.copy?`${reward.copy} `:'';copy.textContent=`${flavour}${accepted.length?`Recovered: ${accepted.join(' · ')}.`:'Nothing could be loaded.'}${left.length?` Left behind for lack of space: ${left.join(', ')}.`:''}`;}
@@ -75,7 +89,7 @@
     const actionRow=modal.querySelector('.modal-actions');modal.insertBefore(card,actionRow||null);modal.dataset.v32Score='1';
   }
 
-  function afterUiChange(){decorateMarket();injectScore();updateQuickRepair();}
+  function afterUiChange(){decorateMarket();decorateExploration();injectScore();updateQuickRepair();}
   const observer=new MutationObserver(afterUiChange);if(modal)observer.observe(modal,{childList:true,subtree:true});
   document.addEventListener('click',()=>setTimeout(updateQuickRepair,0));
   window.addEventListener('adventure-storage-changed',afterUiChange);
