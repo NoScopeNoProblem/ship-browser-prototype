@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>High Seas — The First Sea</title>
+  <link rel="stylesheet" href="world.css?v=20260910ba" />
+</head>
+<body>
+  <main class="world-shell">
+    <header class="world-topbar">
+      <div><div class="eyebrow">New Adventure · Overworld Prototype</div><h1 id="seaName">THE FIRST SEA</h1></div>
+      <div class="hud-strip" aria-label="Adventure resources">
+        <div><span>DAY</span><b id="dayValue">1</b></div>
+        <div><span>COIN</span><b id="coinValue">3</b></div>
+        <div><span>FOOD</span><b id="foodValue">0</b></div>
+        <div><span>BALLS</span><b id="ballValue">0</b></div>
+        <div><span>TIMBER</span><b id="timberValue">0</b></div>
+      </div>
+      <nav class="top-actions"><a href="../">MAIN MENU</a><button id="resetAdventure" type="button">RESET RUN</button></nav>
+    </header>
+
+    <section class="world-layout">
+      <div class="map-panel">
+        <div class="map-copy"><span>CHART</span><p>Select any location to plot the quickest known route. Only the next leg is committed when you sail.</p></div>
+        <div class="world-map" id="worldMap">
+          <svg class="edge-layer" id="edgeLayer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="node-layer" id="nodeLayer"></div>
+          <div class="entity-layer" id="entityLayer"></div>
+        </div>
+        <div class="legend"><span><i class="lg major">⚓</i> Major Port</span><span><i class="lg minor">●</i> Minor Port</span><span><i class="lg poi">◇</i> POI</span><span><i class="lg ship">⛵</i> Moving Ship</span><span><i class="lg current">●</i> Your Ship</span></div>
+      </div>
+
+      <aside class="route-panel">
+        <div class="panel-kicker">CURRENT POSITION</div><h2 id="currentLocation">SEABROOK</h2>
+        <button class="small-action" id="openLocation" type="button">OPEN LOCATION</button>
+        <div class="rule"></div>
+        <div class="panel-kicker">PLOTTED DESTINATION</div><h3 id="routeDestination">No route plotted</h3><p id="routeSummary">Select any location on the chart.</p>
+        <div class="next-leg"><span>NEXT LEG</span><strong id="nextLeg">—</strong></div>
+        <button class="sail-button" id="sailNext" type="button" disabled>SAIL NEXT LEG</button>
+        <button class="small-action" id="clearRoute" type="button" disabled>CLEAR ROUTE</button>
+        <div class="rule"></div>
+        <div class="future-note"><b>ROUTE MODEL</b><p>Normal passages are 2 days. Each passage already carries its own base time, weather eligibility and runtime modifier so wind can change travel time later without replacing route logic.</p></div>
+      </aside>
+    </section>
+  </main>
+
+  <div class="modal-layer" id="modalLayer" hidden><section class="modal-card" id="modalCard" role="dialog" aria-modal="true"></section></div>
+
+  <script src="../shared/adventure-state.js?v=20260910ba"></script>
+  <script src="world-data.js?v=20260910ba"></script>
+  <script src="world.js?v=20260910ba"></script>
+</body>
+</html>
