@@ -5,6 +5,7 @@
 
   let state=Adventure.load();
   let activeModal=null;
+  let sailing=false;
 
   const els={
     map:document.getElementById('worldMap'),
@@ -56,13 +57,26 @@
     Adventure.save(state);
   }
 
-  function edgeDays(edge){
+  function baseWindState(edge){
+    const runtime=state.routeConditions?.[edge?.id]||{};
+    return runtime.weatherState||edge?.travel?.weatherState||'normal';
+  }
+  function reverseWind(wind){return wind==='favourable'?'adverse':wind==='adverse'?'favourable':'normal';}
+  function windState(edge,from=edge?.a,to=edge?.b){
+    const wind=baseWindState(edge);
+    if(wind==='normal'||!edge||!from||!to)return wind;
+    if(from===edge.a&&to===edge.b)return wind;
+    if(from===edge.b&&to===edge.a)return reverseWind(wind);
+    return wind;
+  }
+  function edgeDays(edge,from=edge?.a,to=edge?.b){
     const travel=edge?.travel||{};
     const runtime=state.routeConditions?.[edge?.id]||{};
     const base=Number(travel.baseDays)||2;
-    const staticMod=Number(travel.modifierDays)||0;
-    const runtimeMod=Number(runtime.modifierDays)||0;
-    return Math.max(1,Math.round(base+staticMod+runtimeMod));
+    const wind=windState(edge,from,to);
+    const windMod=wind==='favourable'?-1:wind==='adverse'?1:0;
+    const runtimeExtra=runtime.weatherState?0:(Number(runtime.modifierDays)||0);
+    return Math.max(1,Math.round(base+windMod+runtimeExtra));
   }
 
   function shortestPath(start,target){
@@ -79,7 +93,7 @@
       if(current===target)break;
       for(const [next,edge] of neighbours(current)){
         if(!unvisited.has(next))continue;
-        const alt=best+edgeDays(edge);
+        const alt=best+edgeDays(edge,current,next);
         if(alt<dist.get(next)){dist.set(next,alt);prev.set(next,current);}
       }
     }
@@ -94,7 +108,7 @@
     if(!Array.isArray(path)||path.length<2||path[0]!==state.currentNodeId)return null;
     let days=0;
     for(let i=0;i<path.length-1;i++){
-      const edge=edgeBetween(path[i],path[i+1]);if(!edge)return null;days+=edgeDays(edge);
+      const edge=edgeBetween(path[i],path[i+1]);if(!edge)return null;days+=edgeDays(edge,path[i],path[i+1]);
     }
     return {path:[...path],days,midPassage:false};
   }
@@ -109,7 +123,21 @@
   }
 
   function edgeKey(a,b){return [a,b].sort().join('::');}
-  function windState(edge){return state.routeConditions?.[edge.id]?.weatherState||edge.travel?.weatherState||'normal';}
+  function directionForEdge(edge,plan){
+    if(plan&&!plan.midPassage){
+      for(let i=0;i<plan.path.length-1;i++){
+        if(edgeKey(plan.path[i],plan.path[i+1])===edgeKey(edge.a,edge.b))return {from:plan.path[i],to:plan.path[i+1],planned:true};
+      }
+    }
+    if(plan?.midPassage&&state.midPassage&&edgeKey(state.midPassage.fromNodeId,state.midPassage.toNodeId)===edgeKey(edge.a,edge.b)){
+      const target=plan.path[1];
+      const other=target===edge.a?edge.b:edge.a;
+      return {from:other,to:target,planned:true,midPassage:true};
+    }
+    if(!state.midPassage&&state.currentNodeId===edge.a)return {from:edge.a,to:edge.b,fromCurrent:true};
+    if(!state.midPassage&&state.currentNodeId===edge.b)return {from:edge.b,to:edge.a,fromCurrent:true};
+    return {from:edge.a,to:edge.b};
+  }
 
   function renderEdges(plan){
     els.edgeLayer.innerHTML='';
@@ -119,7 +147,9 @@
 
     for(const edge of World.edges){
       const a=nodeById(edge.a),b=nodeById(edge.b);if(!a||!b)continue;
-      const wind=windState(edge);
+      const direction=directionForEdge(edge,plan);
+      const wind=windState(edge,direction.from,direction.to);
+      const shownDays=direction.midPassage?1:edgeDays(edge,direction.from,direction.to);
       const group=document.createElementNS('http://www.w3.org/2000/svg','g');
       const line=document.createElementNS('http://www.w3.org/2000/svg','line');
       line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);
@@ -130,15 +160,23 @@
         const flow=document.createElementNS('http://www.w3.org/2000/svg','text');
         const mx=(left.x+right.x)/2,my=(left.y+right.y)/2;
         const angle=Math.atan2(right.y-left.y,right.x-left.x)*180/Math.PI;
+        const raw=baseWindState(edge);
+        const aToBRight=b.x>=a.x;
+        const physicalRight=raw==='favourable'?aToBRight:!aToBRight;
         flow.setAttribute('x',mx);flow.setAttribute('y',my+1.1);flow.setAttribute('transform',`rotate(${angle} ${mx} ${my})`);
         flow.setAttribute('class',`wind-arrows ${wind}`);
-        flow.textContent=wind==='favourable'?'› › ›':'‹ ‹ ‹';
+        flow.textContent=physicalRight?'› › ›':'‹ ‹ ‹';
         group.appendChild(flow);
       }
 
       const label=document.createElementNS('http://www.w3.org/2000/svg','text');
       label.setAttribute('x',(a.x+b.x)/2);label.setAttribute('y',(a.y+b.y)/2-1.4);
-      label.setAttribute('class',`route-time${wind!=='normal'?` ${wind}`:''}`);label.textContent=`${edgeDays(edge)}d`;group.appendChild(label);
+      label.setAttribute('class',`route-time${wind!=='normal'?` ${wind}`:''}`);
+      label.textContent=direction.midPassage?'1d':`${shownDays}d`;
+      const title=document.createElementNS('http://www.w3.org/2000/svg','title');
+      const fromName=nodeById(direction.from)?.name||direction.from,toName=nodeById(direction.to)?.name||direction.to;
+      title.textContent=wind==='normal'?`${fromName} → ${toName}: ${shownDays} days`:`${fromName} → ${toName}: ${wind.toUpperCase()} · ${shownDays} day${shownDays===1?'':'s'}`;
+      group.appendChild(title);group.appendChild(label);
       els.edgeLayer.appendChild(group);
     }
   }
@@ -149,14 +187,14 @@
     let food=state.stores.food;
     if(plan.midPassage){food-=foodRate();result.set(plan.path[1],food);return result;}
     for(let i=1;i<plan.path.length;i++){
-      food-=edgeDays(edgeBetween(plan.path[i-1],plan.path[i]))*foodRate();
+      food-=edgeDays(edgeBetween(plan.path[i-1],plan.path[i]),plan.path[i-1],plan.path[i])*foodRate();
       result.set(plan.path[i],food);
     }
     return result;
   }
 
   function handleNodeSelection(node){
-    if(state.status!=='active')return;
+    if(sailing||state.status!=='active')return;
     if(state.midPassage){
       if(node.id!==state.midPassage.fromNodeId&&node.id!==state.midPassage.toNodeId)return;
       state.plannedRoute=[node.id];state.plannedDestinationId=node.id;Adventure.save(state);render();return;
@@ -249,14 +287,17 @@
     }else{
       const destination=nodeById(plan.path[plan.path.length-1]);
       const next=nodeById(plan.path[1]);
-      const nextDays=plan.midPassage?1:edgeDays(edgeBetween(plan.path[0],plan.path[1]));
+      const nextDays=plan.midPassage?1:edgeDays(edgeBetween(plan.path[0],plan.path[1]),plan.path[0],plan.path[1]);
       const finalFood=state.stores.food-routeFoodCost(plan);
+      const nextWind=plan.midPassage?'normal':windState(edgeBetween(plan.path[0],plan.path[1]),plan.path[0],plan.path[1]);
+      const windCopy=nextWind==='normal'?'':` · ${nextWind.toUpperCase()}`;
       els.destination.textContent=destination?.name||'—';
       els.routeSummary.textContent=`${plan.path.length-1} leg${plan.path.length===2?'':'s'} · ${plan.days} day${plan.days===1?'':'s'} · Food ${state.stores.food} → ${finalFood}`;
-      els.nextLeg.textContent=next?`${next.name} · ${nextDays} day${nextDays===1?'':'s'} · −${nextDays*foodRate()} Food`:'—';
-      els.sail.disabled=!next||state.status!=='active';els.clearRoute.disabled=false;
+      els.nextLeg.textContent=next?`${next.name} · ${nextDays} day${nextDays===1?'':'s'}${windCopy} · −${nextDays*foodRate()} Food`:'—';
+      els.sail.disabled=sailing||!next||state.status!=='active';els.clearRoute.disabled=sailing;
     }
-    els.sail.textContent=plan?.path?.[1]?`SAIL NEXT LEG · ${plan.midPassage?1:edgeDays(edgeBetween(plan.path[0],plan.path[1]))}d`:'SAIL NEXT LEG';
+    const buttonDays=plan?.path?.[1]?(plan.midPassage?1:edgeDays(edgeBetween(plan.path[0],plan.path[1]),plan.path[0],plan.path[1])):null;
+    els.sail.textContent=buttonDays?`SAIL NEXT LEG · ${buttonDays}d`:'SAIL NEXT LEG';
   }
 
   function render(){
@@ -285,6 +326,31 @@
     return null;
   }
 
+  async function animatePlayerSail(start,end){
+    const marker=els.entityLayer.querySelector('.player-marker');
+    if(!marker||!start||!end||window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches)return;
+    sailing=true;els.map.classList.add('sailing');marker.classList.add('sailing');els.sail.disabled=true;els.clearRoute.disabled=true;
+    const q=(a,b,t)=>a+(b-a)*t;
+    const move=marker.animate([
+      {left:`${start.x}%`,top:`${start.y}%`},
+      {left:`${q(start.x,end.x,.25)}%`,top:`${q(start.y,end.y,.25)}%`},
+      {left:`${q(start.x,end.x,.5)}%`,top:`${q(start.y,end.y,.5)}%`},
+      {left:`${q(start.x,end.x,.75)}%`,top:`${q(start.y,end.y,.75)}%`},
+      {left:`${end.x}%`,top:`${end.y}%`}
+    ],{duration:760,easing:'cubic-bezier(.42,0,.25,1)',fill:'forwards'});
+    const icon=marker.querySelector('.player-ship-icon');
+    const bob=icon?.animate([
+      {transform:'translateY(0) rotate(-2deg)'},
+      {transform:'translateY(-5px) rotate(2deg)'},
+      {transform:'translateY(2px) rotate(-1deg)'},
+      {transform:'translateY(-3px) rotate(1deg)'},
+      {transform:'translateY(0) rotate(0deg)'}
+    ],{duration:380,iterations:2,easing:'ease-in-out'});
+    try{await move.finished;}catch{}
+    try{bob?.cancel();}catch{}
+    marker.classList.remove('sailing');els.map.classList.remove('sailing');sailing=false;
+  }
+
   function arriveAtNode(from,to,days){
     const threatBeforeMove=enemyAtNode(to);
     advanceTime(days);
@@ -305,10 +371,12 @@
     openLocation(nodeById(to),true);
   }
 
-  function sailFromMidPassage(plan){
+  async function sailFromMidPassage(plan){
     const target=plan?.path?.[1],mid=state.midPassage;if(!target||!mid)return;
     const from=target===mid.toNodeId?mid.fromNodeId:mid.toNodeId;
+    const a=nodeById(mid.fromNodeId),b=nodeById(mid.toNodeId),destination=nodeById(target);
     closeModal(true);
+    await animatePlayerSail(a&&b?{x:(a.x+b.x)/2,y:(a.y+b.y)/2}:null,destination);
     advanceTime(1);
     state.currentNodeId=target;
     state.lastLeg={fromNodeId:from,toNodeId:target,days:1,fromMidPassage:true};
@@ -320,12 +388,14 @@
     openLocation(nodeById(target),true);
   }
 
-  function sailNextLeg(){
-    const plan=currentPlan();if(!plan||plan.path.length<2||state.status!=='active')return;
-    if(plan.midPassage){sailFromMidPassage(plan);return;}
+  async function sailNextLeg(){
+    const plan=currentPlan();if(sailing||!plan||plan.path.length<2||state.status!=='active')return;
+    if(plan.midPassage){await sailFromMidPassage(plan);return;}
     closeModal(true);
     const from=plan.path[0],to=plan.path[1],edge=edgeBetween(from,to);if(!edge)return;
-    arriveAtNode(from,to,edgeDays(edge));
+    const start=nodeById(from),end=nodeById(to);
+    await animatePlayerSail(start,end);
+    arriveAtNode(from,to,edgeDays(edge,from,to));
   }
 
   function modalShell({kicker,title,copy,locked=false}){
@@ -401,7 +471,7 @@
     if(node.type==='majorPort'||node.type==='minorPort'){openPort(node);return;}
     if(node.type==='poi'){openPoi(node);return;}
     if(node.type==='paradise'){openParadise(node);return;}
-    if(fromTravel){modalShell({kicker:'ARRIVED',title:node.name,copy:'Open water. Extend the plotted route or choose another destination.'});actions(button('CONTINUE',()=>closeModal(true)));}
+    if(fromTravel){modalShell({kicker:'ARRIVED',title:node.name,copy:'Open water. Route costs now read from this position: a favourable passage is adverse when sailed back against the same wind.'});actions(button('CONTINUE',()=>closeModal(true)));}
     else{modalShell({kicker:'CURRENT LOCATION',title:node.name,copy:'Open water. No local interaction is attached yet.'});actions(button('CLOSE',()=>closeModal(true),'secondary'));}
   }
 
@@ -412,10 +482,20 @@
     actions(button('PLOT TO CURRENT POSITION',()=>{if(state.midPassage)return;state.plannedRoute=[];state.plannedDestinationId=null;closeModal(true);handleNodeSelection(node);}),button('CLOSE',()=>closeModal(true),'secondary'));
   }
 
+  function evadeThreat(def){
+    const foodCost=foodRate();
+    advanceTime(1);
+    state.lastEvasion={enemyId:def.id,day:state.day,foodCost};
+    Adventure.save(state);render();
+    modalShell({kicker:'EVADED',title:'YOU SLIP PAST',copy:`Avoiding ${def.name} cost 1 day and ${foodCost} Food. The world advanced while you kept your distance.`});
+    actions(button('CONTINUE',()=>closeModal(true)));
+  }
+
   function openThreat(def){
-    modalShell({kicker:'THREAT ENCOUNTERED',title:def.name,copy:`Threat Rank ${'★'.repeat(def.threat)}. You know the vessel's coarse threat level; its internal rooms remain unknown until combat reveals them.`});
+    const foodCost=foodRate();
+    modalShell({kicker:'THREAT ENCOUNTERED',title:def.name,copy:`Threat Rank ${'★'.repeat(def.threat)}. You know the vessel's coarse threat level; its internal rooms remain unknown until combat reveals them. Evading costs 1 day and ${foodCost} Food, and the world advances.`});
     const detail=document.createElement('div');detail.className='threat-summary';detail.innerHTML=`<span>YOUR SHIP</span><strong>THE WAYWARD</strong><span>THREAT</span><strong>${'★'.repeat(def.threat)}</strong>`;els.modalCard.appendChild(detail);
-    actions(button('ENGAGE',()=>launchCombat(def),'danger'),button('AVOID FOR NOW',()=>closeModal(true),'secondary'));
+    actions(button('ENGAGE',()=>launchCombat(def),'danger'),button(`EVADE · 1 DAY · −${foodCost} FOOD`,()=>evadeThreat(def),'secondary'));
   }
 
   function launchCombat(def){
@@ -477,10 +557,10 @@
     modalShell({kicker:'RETURN TO MAP',title:'COMBAT ENDED',copy:'You have returned to the chart.'});actions(button('CONTINUE',()=>closeModal(true)),button('MAIN MENU',()=>{window.location.href='../';},'secondary'));return true;
   }
 
-  els.sail.addEventListener('click',sailNextLeg);
-  els.clearRoute.addEventListener('click',()=>{state.plannedRoute=[];state.plannedDestinationId=null;Adventure.save(state);render();});
-  els.openLocation.addEventListener('click',()=>openLocation(nodeById(state.currentNodeId)));
-  els.reset.addEventListener('click',()=>{if(window.confirm('Start a fresh map run? Current map progress will be replaced.')){state=Adventure.newAdventure();ensureState();render();openPort(nodeById(World.startNodeId));}});
+  els.sail.addEventListener('click',()=>{void sailNextLeg();});
+  els.clearRoute.addEventListener('click',()=>{if(sailing)return;state.plannedRoute=[];state.plannedDestinationId=null;Adventure.save(state);render();});
+  els.openLocation.addEventListener('click',()=>{if(!sailing)openLocation(nodeById(state.currentNodeId));});
+  els.reset.addEventListener('click',()=>{if(sailing)return;if(window.confirm('Start a fresh map run? Current map progress will be replaced.')){state=Adventure.newAdventure();ensureState();render();openPort(nodeById(World.startNodeId));}});
   els.modal.addEventListener('click',event=>{if(event.target===els.modal)closeModal();});
   window.addEventListener('keydown',event=>{if(event.code==='Escape'&&activeModal)closeModal();});
 
