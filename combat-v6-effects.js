@@ -38,8 +38,8 @@
   }
 
   // Predict magazine collateral as part of the same deterministic planning state.
-  // This means collateral can disable a gun before its shot, and vanishes when the
-  // primary magazine hit is dodged/prevented.
+  // v27 is the canonical Brace-aware planning projection. This older distribution remains
+  // for legacy renderers and intentionally does not mutate/consume the real Brace state.
   const basePlayerIntentDistribution = playerIntentDistribution;
   playerIntentDistribution = function(){
     if(resolving()) return emptyPlayerState();
@@ -99,14 +99,16 @@
     return true;
   }
 
-  function appendExplosionLog(side, magazine, affected){
+  function appendExplosionLog(side, magazine, affected, blocked=[]){
     const log = stage.querySelector('.v3-log-lines');
-    if(!log || !affected.length) return;
+    if(!log || (!affected.length && !blocked.length)) return;
     const line = document.createElement('div');
     line.className = 'v3-log-line';
     const sideClass = side === 'player' ? 'v3-log-player' : 'v3-log-enemy';
-    const names = affected.map(r => r.name).join(', ');
-    line.innerHTML = `<span class="${sideClass}">${magazine.name}</span> explodes: ${names} each take 1 damage.`;
+    const parts=[];
+    if(affected.length) parts.push(`${affected.map(r => r.name).join(', ')} ${affected.length===1?'takes':'each take'} 1 damage`);
+    if(blocked.length) parts.push(`${blocked.map(r => r.name).join(', ')} ${blocked.length===1?'BRACES':'BRACE'} −1`);
+    line.innerHTML = `<span class="${sideClass}">${magazine.name}</span> explodes: ${parts.join('; ')}.`;
     log.appendChild(line);
     log.scrollTop = log.scrollHeight;
   }
@@ -137,10 +139,22 @@
       if(explodedMagazines.has(mag.id)) continue;
       explodedMagazines.add(mag.id);
       const affected = [];
+      const blocked = [];
 
       adjacentRooms(event.side, mag).forEach(room => {
         const before = room.hp;
         if(before <= 0) return;
+
+        // Brace prevents the first damage point that reaches this target. Explosion collateral
+        // is a real damage event, so it consumes Brace here at the same source-of-truth point
+        // where HP would otherwise be reduced. No post-damage healing or visual patch is used.
+        const absorbed = Math.min(1, Math.max(0, Number(window.combatBrace?.consume?.(event.side, room.id, 1) || 0)));
+        if(absorbed){
+          blocked.push(room);
+          rerender = true;
+          return;
+        }
+
         room.hp = Math.max(0, room.hp - 1);
         affected.push(room);
         rerender = true;
@@ -148,7 +162,7 @@
         if(room.isMagazine && before > 0 && room.hp <= 0 && !explodedMagazines.has(room.id)) queue.push({side:event.side, magazine:room});
       });
 
-      explosionEvents.push({side:event.side, magazine:mag, affected});
+      explosionEvents.push({side:event.side, magazine:mag, affected, blocked});
     }
 
     return {rerender, revealed, explosionEvents};
@@ -172,7 +186,11 @@
         el.appendChild(icon);
         setTimeout(() => icon.remove(), 650);
       });
-      setTimeout(() => appendExplosionLog(event.side, event.magazine, event.affected), 0);
+      event.blocked.forEach(room => {
+        const el=getEntityElement(event.side,room.id);
+        if(el) showRoomTooltip(el,'BRACED −1');
+      });
+      setTimeout(() => appendExplosionLog(event.side, event.magazine, event.affected, event.blocked), 0);
     });
   }
 
